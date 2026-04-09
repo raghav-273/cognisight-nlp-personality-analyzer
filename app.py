@@ -115,10 +115,3 @@ else:
 
 st.markdown("---")
 st.caption("Built with Streamlit, Transformers, and NLP analysis. Model: Cardiff NLP Twitter RoBERTa Sentiment.")
-    st.write("### 😊 Overall Sentiment")
-    if avg_sent > 0:
-        st.success("Positive Tone")
-    elif avg_sent < 0:
-        st.error("Negative Tone")
-    else:
-        st.info("Neutral Tone")

@@ -1,7 +1,7 @@
 import re
 import nltk
 from nltk.tokenize import sent_tokenize
-from transformers import pipeline
+from nltk.sentiment import SentimentIntensityAnalyzer
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
 import io
@@ -9,6 +9,7 @@ import base64
 
 # Download required resources
 nltk.download('punkt')
+sia = SentimentIntensityAnalyzer()
 
 # Load advanced sentiment model
 sentiment_model = pipeline("sentiment-analysis", model="cardiffnlp/twitter-roberta-base-sentiment-latest")
@@ -26,18 +27,8 @@ def split_sentences(text):
 def get_sentiment_scores(sentences):
     scores = []
     for s in sentences:
-        try:
-            result = sentiment_model(s[:512])[0]
-            label = result['label']
-            if label == 'LABEL_2':  # Positive
-                score = 1
-            elif label == 'LABEL_0':  # Negative
-                score = -1
-            else:  # Neutral
-                score = 0
-            scores.append(score)
-        except:
-            scores.append(0)
+        score = sia.polarity_scores(s)['compound']
+        scores.append(score)
     return scores
 
 def avg_sentiment(scores):
