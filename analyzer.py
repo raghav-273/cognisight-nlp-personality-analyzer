@@ -2,6 +2,7 @@ import re
 import nltk
 from nltk.tokenize import sent_tokenize
 from nltk.sentiment import SentimentIntensityAnalyzer
+from transformers import pipeline
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
 import io
@@ -9,6 +10,7 @@ import base64
 
 # Download required resources
 nltk.download('punkt')
+nltk.download('vader_lexicon')
 sia = SentimentIntensityAnalyzer()
 
 # Load advanced sentiment model
