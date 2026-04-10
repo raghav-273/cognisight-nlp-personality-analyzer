@@ -22,3 +22,8 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.swp
+
+# Run the analyzer
+#python -c "from analyzer import PersonalityAnalyzer; analyzer = PersonalityAnalyzer(); result = analyzer.analyze('Your text here')"
+# Run the web app
+#streamlit run app.py
