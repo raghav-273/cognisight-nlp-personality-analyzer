@@ -232,13 +232,13 @@ class PersonalityInterpreter:
         strengths: List[str] = []
 
         if profile.get("Openness", {}).get("score", 0) >= 0.62:
-            strengths.append("Reflection: the writing shows curiosity about inner experience.")
+            strengths.append("**Reflective curiosity:** You're not just reporting what happened—you're asking yourself *why*, which is the beginning of real understanding.")
         if features.get("ling_feat_10", 0.0) >= 0.08:
-            strengths.append("Awareness: the entry is clearly self-observant rather than emotionally avoidant.")
+            strengths.append("**Self-awareness:** The entry reveals you're tuned in to your own patterns, feelings, and reactions rather than avoiding the harder parts.")
         if profile.get("Conscientiousness", {}).get("score", 0) >= 0.60 or features.get("ling_feat_2", 0.0) >= 0.70:
-            strengths.append("Logical thinking: there is visible effort to organize and reason through the situation.")
+            strengths.append("**Structured thinking:** You organize ideas clearly, which means progress from confusion to clarity is a natural next step.")
         if not strengths:
-            strengths.append("Putting thoughts into words at all is a meaningful reflective strength.")
+            strengths.append("**Honesty:** Putting your genuine experience into words—without filters—is itself a valuable reflective practice.")
 
         return strengths[:3]
 
@@ -246,15 +246,15 @@ class PersonalityInterpreter:
         suggestions: List[str] = []
 
         if features.get("ling_feat_25", 1.0) <= 0.58:
-            suggestions.append("Try breaking the entry into smaller steps: what happened, what you felt, and what you need next.")
+            suggestions.append("**Break looping thoughts:** Separate 'what happened' from 'what I felt' from 'what I need.' Writing them as distinct thoughts first can help you finish each one.")
         if profile.get("Neuroticism", {}).get("score", 0) >= 0.68 or features.get("ling_feat_6", 0.0) >= 0.56:
-            suggestions.append("Take a short break if the writing starts to feel overwhelming, then return with slower sentences.")
+            suggestions.append("**Slow your pace:** Write one sentence at a time. If energy drops, stop, breathe, and return later. Quality over volume.")
         if features.get("ling_feat_2", 0.0) <= 0.42:
-            suggestions.append("Use short bullet points first, then expand them into a clearer plan.")
+            suggestions.append("**Create structure first:** Use bullets for the bare facts, then expand into fuller sentences. This helps shift from scattered to organized.")
         if features.get("ling_feat_13", 0.0) >= 0.14:
-            suggestions.append("If your thoughts keep circling, answer one question fully before moving to the next.")
+            suggestions.append("**Pick one thread:** Choose the most pressing thought, write about it fully, then move to the next. Circular thinking often clears when focused deeper.")
         if not suggestions:
-            suggestions.append("Keep journaling in this style; it already shows a useful level of clarity and reflection.")
+            suggestions.append("**Keep this momentum:** Your entry shows genuine reflection and clarity. The journaling approach you're using is already working well.")
 
         return suggestions[:4]
 
@@ -293,3 +293,37 @@ class ConfidenceCalibrator:
     def normalize_confidence(self, score: float) -> float:
         normalized = 0.60 + (max(0.0, min(1.0, score)) * 0.30)
         return min(0.90, max(0.60, normalized))
+
+
+class ReflectionPromptGenerator:
+    """Generate follow-up journaling prompts based on analysis."""
+
+    def generate_prompts(self, profile: Dict[str, Dict], mental_state: str, thought_patterns: List[str], text_length: int) -> List[str]:
+        """Generate 2-3 personalized follow-up prompts."""
+        prompts = []
+
+        # Prompt 1: Based on mental state
+        if mental_state == "Overthinking":
+            prompts.append("Of all the thoughts spinning right now, which one matters most? Write about just that one.")
+        elif mental_state == "Stressed":
+            prompts.append("What's one small thing you could change or control about this situation right now?")
+        elif mental_state == "Reflective":
+            prompts.append("What does this insight mean for how you'll act or think going forward?")
+        elif mental_state == "Analytical":
+            prompts.append("You've thought this through logically. What does your gut tell you to do?")
+        else:
+            prompts.append("What would help the most right now—action, rest, or just being heard?")
+
+        # Prompt 2: Based on openness/extraversion
+        if profile.get("Extraversion", {}).get("score", 0.5) >= 0.60:
+            prompts.append("Who could you talk to about this? What do you want them to understand most?")
+        else:
+            prompts.append("How has this pattern shown up in your life before? Does today feel different?")
+
+        # Prompt 3: Based on text length / depth
+        if text_length < 150:
+            prompts.append("Go back and pick the sentence that carries the most emotion. Expand it—what details matter there?")
+        else:
+            prompts.append("Reading back over this, what surprises you most about how you're thinking right now?")
+
+        return prompts[:3]

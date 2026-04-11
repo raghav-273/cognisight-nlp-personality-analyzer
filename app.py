@@ -1,9 +1,12 @@
 """
-Cognisight Streamlit application.
+Cognisight Streamlit application - Redesigned for clarity and impact.
+
+A calm, structured journaling intelligence tool that combines text analysis
+with a lightweight personality questionnaire to provide meaningful self-reflection
+guidance without overstepping into clinical territory.
 """
 
 from typing import Dict, List
-
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
@@ -11,280 +14,200 @@ import streamlit as st
 from analyzer import PersonalityAnalyzer
 
 
+# ============================================================================
+# CONFIGURATION
+# ============================================================================
+
 QUESTIONNAIRE_ITEMS = [
     {
         "id": "q_energy",
         "dimension": "IE",
-        "question": "After a draining week, what restores you more?",
+        "question": "After a draining week, what restores you most?",
         "left": "Quiet time alone",
-        "right": "Time with other people",
+        "right": "Time with people",
     },
     {
         "id": "q_processing",
         "dimension": "IE",
-        "question": "When you're thinking through something difficult, you usually...",
+        "question": "When thinking through something difficult, you usually...",
         "left": "Process internally first",
-        "right": "Think out loud with others",
+        "right": "Think out loud",
     },
     {
         "id": "q_patterns",
         "dimension": "NS",
         "question": "When learning something new, what pulls you in first?",
         "left": "Patterns and possibilities",
-        "right": "Facts and concrete details",
+        "right": "Concrete facts",
     },
     {
         "id": "q_decisions",
         "dimension": "TF",
-        "question": "What weighs more in decisions?",
+        "question": "In decisions, what weighs more?",
         "left": "Logic and consistency",
-        "right": "Values and people impact",
+        "right": "Values and impact",
     },
     {
         "id": "q_structure",
         "dimension": "JP",
         "question": "Your best days usually feel...",
-        "left": "Mapped out and structured",
-        "right": "Flexible and open-ended",
+        "left": "Structured and planned",
+        "right": "Flexible and open",
     },
     {
         "id": "q_deadlines",
         "dimension": "JP",
-        "question": "When a deadline is close, you prefer to...",
-        "left": "Lock a plan and follow it",
+        "question": "When a deadline is near, you prefer to...",
+        "left": "Lock a plan",
         "right": "Adapt as you go",
     },
 ]
 
-ANSWER_TO_SCORE = {
-    "Left": 0.0,
-    "In Between": 0.5,
-    "Right": 1.0,
-}
+ANSWER_TO_SCORE = {"Left": 0.0, "In Between": 0.5, "Right": 1.0}
 
+
+# ============================================================================
+# PAGE SETUP
+# ============================================================================
 
 st.set_page_config(
-    page_title="Cognisight",
-    page_icon="C",
+    page_title="Cognisight - Journaling Intelligence",
+    page_icon="🧠",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
-
 
 st.markdown(
     """
     <style>
         :root {
             --panel: rgba(18, 26, 44, 0.88);
-            --panel-strong: rgba(22, 31, 54, 0.96);
             --border: rgba(150, 164, 207, 0.14);
             --text: #edf2ff;
             --muted: #a7b1d1;
             --blue: #8bb6ff;
             --purple: #c7a0ff;
-            --pink: #ff9ed1;
-            --amber: #f6cf7a;
-            --orange: #ffb177;
             --green: #94e6c1;
+            --orange: #ffb177;
         }
 
         .stApp {
-            background:
-                radial-gradient(circle at top left, rgba(139, 182, 255, 0.15), transparent 28%),
-                radial-gradient(circle at top right, rgba(199, 160, 255, 0.12), transparent 24%),
-                linear-gradient(180deg, #080d18 0%, #0c1221 100%);
+            background: radial-gradient(circle at top left, rgba(139, 182, 255, 0.15), transparent 28%),
+                        radial-gradient(circle at top right, rgba(199, 160, 255, 0.12), transparent 24%),
+                        linear-gradient(180deg, #080d18 0%, #0c1221 100%);
         }
 
         .block-container {
-            max-width: 1180px;
-            padding-top: 2rem;
-            padding-bottom: 3rem;
+            max-width: 1200px;
         }
 
-        .hero, .card, .stat, .soft-note {
+        .hero, .card {
             background: var(--panel);
             border: 1px solid var(--border);
-            border-radius: 26px;
-            box-shadow: 0 18px 50px rgba(0, 0, 0, 0.22);
-            animation: fadeUp 0.45s ease both;
-            transition: transform 0.22s ease, border-color 0.22s ease;
-        }
-
-        .card:hover, .stat:hover {
-            transform: translateY(-2px);
-            border-color: rgba(199, 160, 255, 0.28);
-        }
-
-        @keyframes fadeUp {
-            from { opacity: 0; transform: translateY(8px); }
-            to { opacity: 1; transform: translateY(0); }
+            border-radius: 20px;
+            padding: 24px;
+            margin-bottom: 16px;
         }
 
         .hero {
-            padding: 32px 34px;
-            margin-bottom: 1rem;
-            background:
-                linear-gradient(135deg, rgba(139, 182, 255, 0.12), transparent 38%),
-                linear-gradient(180deg, rgba(24, 33, 57, 0.97), rgba(15, 21, 38, 0.97));
-        }
-
-        .card {
-            padding: 20px 22px;
-            margin-bottom: 1rem;
-            background: var(--panel-strong);
-        }
-
-        .stat {
-            padding: 18px 20px;
-            min-height: 124px;
-        }
-
-        .soft-note {
-            padding: 14px 16px;
-            margin-top: 0.8rem;
-            background: rgba(139, 182, 255, 0.08);
-        }
-
-        .eyebrow {
-            text-transform: uppercase;
-            letter-spacing: 0.12em;
-            font-size: 0.75rem;
-            color: var(--green);
-            font-weight: 700;
+            padding: 32px;
+            background: linear-gradient(135deg, rgba(139, 182, 255, 0.12), transparent 38%),
+                        linear-gradient(180deg, rgba(24, 33, 57, 0.97), rgba(15, 21, 38, 0.97));
         }
 
         .title {
-            color: var(--text);
-            font-size: 3rem;
-            line-height: 1;
+            font-size: 2.5rem;
             font-weight: 800;
-            margin: 0.3rem 0 0.8rem 0;
+            color: #edf2ff;
+            margin: 0;
         }
 
-        .muted {
-            color: var(--muted);
-            font-size: 0.98rem;
+        .subtitle {
+            color: #a7b1d1;
+            font-size: 1rem;
+            margin-top: 8px;
         }
 
         .section-label {
             text-transform: uppercase;
-            letter-spacing: 0.08em;
-            font-size: 0.74rem;
-            color: var(--muted);
+            font-size: 0.75rem;
+            color: #94e6c1;
             font-weight: 700;
-            margin-bottom: 0.45rem;
+            letter-spacing: 0.08em;
+            margin-bottom: 8px;
         }
 
         .section-title {
-            color: var(--text);
-            font-size: 1.18rem;
-            font-weight: 800;
-            margin-bottom: 0.35rem;
-        }
-
-        .stat-label {
-            color: var(--muted);
-            font-size: 0.78rem;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            margin-bottom: 0.5rem;
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #edf2ff;
+            margin: 0;
         }
 
         .stat-value {
-            color: var(--text);
-            font-size: 1.85rem;
+            font-size: 2rem;
             font-weight: 800;
-            margin-bottom: 0.25rem;
+            color: #edf2ff;
         }
 
-        .stat-subtle {
-            color: var(--muted);
-            font-size: 0.88rem;
+        .stat-label {
+            color: #a7b1d1;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
         }
 
-        .pill {
-            display: inline-block;
-            border-radius: 999px;
-            padding: 0.34rem 0.82rem;
-            margin-right: 0.45rem;
-            font-size: 0.84rem;
-            font-weight: 700;
+        .insight-item {
+            background: rgba(139, 182, 255, 0.08);
+            border-left: 3px solid #8bb6ff;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin: 8px 0;
+            color: #edf2ff;
+            line-height: 1.6;
         }
 
-        .progress-shell {
-            margin-top: 0.65rem;
+        .strength-item {
+            background: rgba(148, 230, 193, 0.08);
+            border-left: 3px solid #94e6c1;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin: 8px 0;
+            color: #edf2ff;
         }
 
-        .progress-label {
-            display: flex;
-            justify-content: space-between;
-            gap: 1rem;
-            color: var(--muted);
-            font-size: 0.86rem;
-            margin-bottom: 0.35rem;
+        .growth-item {
+            background: rgba(255, 177, 119, 0.08);
+            border-left: 3px solid #ffb177;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin: 8px 0;
+            color: #edf2ff;
         }
 
-        .progress-bar {
-            width: 100%;
-            height: 10px;
-            border-radius: 999px;
-            background: rgba(255,255,255,0.08);
-            overflow: hidden;
+        .prompt-item {
+            background: rgba(199, 160, 255, 0.08);
+            border-left: 3px solid #c7a0ff;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin: 8px 0;
+            color: #edf2ff;
+            font-style: italic;
         }
 
-        .progress-fill {
-            height: 100%;
-            border-radius: 999px;
-        }
-
-        .match-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 1rem;
-            margin-bottom: 0.75rem;
-        }
-
-        .match-name {
-            color: var(--text);
-            font-weight: 700;
-            min-width: 56px;
-        }
-
-        .match-bar {
-            height: 10px;
-            border-radius: 999px;
-            background: rgba(255,255,255,0.08);
-            overflow: hidden;
-            flex: 1;
-        }
-
-        .match-fill {
-            height: 100%;
-            border-radius: 999px;
-            background: linear-gradient(90deg, var(--purple), var(--blue));
-        }
-
-        .signal-box, .highlight-box {
-            background: rgba(139, 182, 255, 0.06);
-            border: 1px solid rgba(139, 182, 255, 0.08);
-            border-radius: 16px;
-            padding: 14px 16px;
-            margin-bottom: 0.75rem;
-        }
-
-        .highlight-box {
-            color: var(--text);
-            line-height: 1.8;
+        .safe-mode-box {
+            background: rgba(255, 177, 119, 0.1);
+            border: 1px solid rgba(255, 177, 119, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            color: #edf2ff;
         }
 
         .stTextArea textarea {
             background: rgba(16, 23, 40, 0.96) !important;
-            color: var(--text) !important;
+            color: #edf2ff !important;
             border: 1px solid var(--border) !important;
-            border-radius: 18px !important;
-            min-height: 260px !important;
-            padding: 1rem !important;
+            border-radius: 12px !important;
         }
 
         .stButton button {
@@ -292,8 +215,8 @@ st.markdown(
             color: #09101d !important;
             border: none !important;
             border-radius: 999px !important;
-            padding: 0.85rem 1.3rem !important;
-            font-weight: 800 !important;
+            padding: 10px 20px !important;
+            font-weight: 700 !important;
         }
 
         .stTabs [data-baseweb="tab-list"] {
@@ -304,8 +227,18 @@ st.markdown(
             background: rgba(18, 26, 44, 0.72);
             border: 1px solid var(--border);
             border-radius: 999px;
-            color: var(--text);
-            padding: 0.48rem 0.95rem;
+            color: #a7b1d1;
+            padding: 8px 16px;
+        }
+
+        .disclaimer {
+            background: rgba(139, 182, 255, 0.06);
+            border: 1px solid rgba(139, 182, 255, 0.12);
+            border-radius: 12px;
+            padding: 12px 14px;
+            font-size: 0.85rem;
+            color: #a7b1d1;
+            margin-top: 16px;
         }
     </style>
     """,
@@ -313,21 +246,39 @@ st.markdown(
 )
 
 
+# ============================================================================
+# HELPER FUNCTIONS
+# ============================================================================
+
 @st.cache_resource
 def load_analyzer() -> PersonalityAnalyzer:
+    """Load analyzer once and cache across reruns."""
     return PersonalityAnalyzer()
 
 
-def render_hero() -> None:
+def state_to_color(state: str) -> str:
+    """Map mental state to color."""
+    colors = {
+        "Calm": "#94e6c1",
+        "Reflective": "#c7a0ff",
+        "Analytical": "#8bb6ff",
+        "Stressed": "#ffb177",
+        "Overthinking": "#ff9ed1",
+        "Mixed": "#a7b1d1",
+        "Unclear": "#a7b1d1",
+    }
+    return colors.get(state, "#8bb6ff")
+
+
+def render_hero():
+    """Render header/hero section."""
     st.markdown(
         """
         <div class="hero">
-            <div class="eyebrow">Hybrid Journaling Intelligence</div>
+            <div class="section-label">AI-Powered Journaling</div>
             <div class="title">Cognisight</div>
-            <div class="muted">
-                Cognisight combines text analysis with a tiny personality questionnaire to create a
-                more personalized, trustworthy journaling assistant. It reads your writing, checks
-                your preferences, and turns both into calm, useful guidance.
+            <div class="subtitle">
+                Combining text analysis with a brief personality check-in to turn journaling into actionable self-reflection.
             </div>
         </div>
         """,
@@ -336,531 +287,538 @@ def render_hero() -> None:
 
 
 def render_input_area() -> str:
-    with st.container():
-        st.markdown(
-            """
-            <div class="card">
-                <div class="section-label">Write Your Thoughts</div>
-                <div class="section-title">Journal Entry</div>
-                <div class="muted">
-                    This tool is for self-reflection only and not a substitute for professional mental health support.
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-        return st.text_area(
-            "Write your thoughts",
-            label_visibility="collapsed",
-            placeholder="Write about what happened, what you are feeling, what keeps replaying in your mind, or what you are trying to figure out...",
-        )
-
-
-def render_questionnaire() -> Dict[str, float]:
+    """Render entry text input."""
     st.markdown(
         """
         <div class="card">
-            <div class="section-label">Micro-Questionnaire</div>
-            <div class="section-title">Quick personality check-in</div>
-            <div class="muted">Six quick prompts help the app personalize MBTI-style matches when text alone is ambiguous.</div>
+            <div class="section-label">📝 Your Journal Entry</div>
+            <div class="section-title">Write Your Thoughts</div>
+            <div style="color: #a7b1d1; font-size: 0.9rem; margin-top: 4px;">
+                Share what's on your mind, what you're feeling, or what you're trying to work through. 
+                The more authentic, the better the insights.
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    text = st.text_area(
+        "Journal entry",
+        label_visibility="collapsed",
+        placeholder="Write about what happened, what you're feeling, what's on your mind...",
+        height=200,
+    )
+    return text
+
+
+def render_questionnaire() -> Dict[str, float]:
+    """Render personality questionnaire."""
+    st.markdown(
+        """
+        <div class="card">
+            <div class="section-label">🎯 Quick Check-In</div>
+            <div class="section-title">6 Quick Questions</div>
+            <div style="color: #a7b1d1; font-size: 0.9rem; margin-top: 4px;">
+                These help personalize the analysis when text alone is ambiguous. Your answers stay private.
+            </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
     dimension_scores: Dict[str, List[float]] = {}
-    col1, col2 = st.columns(2)
-    columns = [col1, col2]
+    cols = st.columns(2)
 
-    for index, item in enumerate(QUESTIONNAIRE_ITEMS):
-        with columns[index % 2]:
-            selection = st.radio(
+    for idx, item in enumerate(QUESTIONNAIRE_ITEMS):
+        with cols[idx % 2]:
+            response = st.radio(
                 item["question"],
                 ["Left", "In Between", "Right"],
                 horizontal=True,
                 key=item["id"],
-                format_func=lambda key, left=item["left"], right=item["right"]: {
+                format_func=lambda x, left=item["left"], right=item["right"]: {
                     "Left": left,
-                    "In Between": "In between",
+                    "In Between": "Middle",
                     "Right": right,
-                }[key],
+                }[x],
             )
-            dimension_scores.setdefault(item["dimension"], []).append(ANSWER_TO_SCORE[selection])
+            dim = item["dimension"]
+            dimension_scores.setdefault(dim, []).append(ANSWER_TO_SCORE[response])
 
     return {
-        dimension: sum(values) / len(values)
-        for dimension, values in dimension_scores.items()
+        dim: sum(scores) / len(scores)
+        for dim, scores in dimension_scores.items()
     }
 
 
-def state_color(label: str) -> str:
-    mapping = {
-        "Calm": "#8bb6ff",
-        "Reflective": "#c7a0ff",
-        "Analytical": "#94e6c1",
-        "Stressed": "#ffb177",
-        "Overthinking": "#ff9ed1",
-        "Mixed": "#a7b1d1",
-        "Unclear": "#a7b1d1",
-    }
-    return mapping.get(label, "#8bb6ff")
-
-
-def render_progress_metric(title: str, value: int, color: str, subtitle: str = "") -> None:
-    st.markdown(
-        f"""
-        <div class="card">
-            <div class="section-label">{title}</div>
-            <div class="stat-value">{value}/100</div>
-            <div class="progress-shell">
-                <div class="progress-bar">
-                    <div class="progress-fill" style="width:{value}%; background:{color};"></div>
-                </div>
-            </div>
-            {f"<div class='stat-subtle' style='margin-top:0.55rem;'>{subtitle}</div>" if subtitle else ""}
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-
-def render_list_card(label: str, title: str, items) -> None:
-    st.markdown(
-        f"""
-        <div class="card">
-            <div class="section-label">{label}</div>
-            <div class="section-title">{title}</div>
-        """,
-        unsafe_allow_html=True,
-    )
-    for item in items:
-        st.markdown(f"- {item}")
-    st.markdown("</div>", unsafe_allow_html=True)
-
-
-def render_safe_message(results) -> None:
-    st.markdown(
-        """
-        <div class="card">
-            <div class="section-label">Supportive Response</div>
-            <div class="section-title">Analysis paused</div>
-        """,
-        unsafe_allow_html=True,
-    )
-    st.markdown(results["support_message"])
-    st.markdown(
-        f"<div class='soft-note'><span class='muted'>{results['disclaimer']}</span></div>",
-        unsafe_allow_html=True,
-    )
-    st.markdown("</div>", unsafe_allow_html=True)
-
-
-def render_low_signal(results) -> None:
-    st.markdown(
-        """
-        <div class="card">
-            <div class="section-label">Low-Signal Entry</div>
-            <div class="section-title">The sample needs more context</div>
-        """,
-        unsafe_allow_html=True,
-    )
-    st.markdown(results["reflection_summary"])
-    st.markdown("</div>", unsafe_allow_html=True)
-    render_list_card("Thought Patterns", "Why the result would be unreliable", results["thought_patterns"])
-    render_list_card("Suggestions", "How to make the next entry more useful", results["suggestions"])
-
-
-def render_memory_message(message: str) -> None:
-    if not message:
-        return
-    st.markdown(
-        f"""
-        <div class="soft-note">
-            <span class="muted">{message}</span>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-
-def build_memory_message(previous: Dict, current: Dict) -> str:
-    if not previous:
-        return ""
-
-    before_score = previous["self_awareness"]["score"]
-    after_score = current["self_awareness"]["score"]
-    before_state = previous["mental_state"]["label"]
-    after_state = current["mental_state"]["label"]
-
-    if after_score >= before_score + 8:
-        return f"Compared to your last entry, you seem more clear and self-aware. The score moved from {before_score} to {after_score}."
-    if after_score <= before_score - 8:
-        return f"Compared to your last entry, this one feels less settled. The self-awareness score moved from {before_score} to {after_score}."
-    if before_state != after_state:
-        return f"Compared to your last entry, your mental state shifted from {before_state.lower()} toward {after_state.lower()}."
-    return "Compared to your last entry, the overall pattern is fairly similar, even if the tone and details changed."
-
-
-def render_mbti_matches(results) -> None:
-    rows = []
-    for match in results["mbti_matches"]:
-        rows.append(
-            f"""
-            <div class="match-row">
-                <div class="match-name">{match['type']}</div>
-                <div class="match-bar"><div class="match-fill" style="width:{match['probability']:.0f}%"></div></div>
-                <div class="stat-subtle">{match['probability']:.0f}%</div>
-            </div>
-            """
-        )
-    st.markdown(
-        """
-        <div class="card">
-            <div class="section-label">Primary Type</div>
-            <div class="section-title">"""
-        + f"{results['mbti_primary']['type']} (Confidence: {results['mbti_primary']['probability']:.0f}%)"
-        + """</div>
-        """
-        + "".join(rows),
-        unsafe_allow_html=True,
-    )
-    for line in results["mbti_insights"]:
-        st.markdown(f"- {line}")
-    st.markdown("</div>", unsafe_allow_html=True)
-
-
-def render_questionnaire_summary(results) -> None:
-    summary = results["fusion"]["questionnaire_dimensions"]
-    if not summary:
-        st.info("No questionnaire data was used in this analysis.")
-        return
-
-    st.markdown(
-        """
-        <div class="card">
-            <div class="section-label">Questionnaire Blend</div>
-            <div class="section-title">How the quick check-in influenced the type fit</div>
-        """,
-        unsafe_allow_html=True,
-    )
-    for row in summary:
-        st.markdown(
-            f"""
-            <div class="progress-shell">
-                <div class="progress-label">
-                    <span>{row['left']} ↔ {row['right']}</span>
-                    <span>{row['lean']}</span>
-                </div>
-                <div class="progress-bar">
-                    <div class="progress-fill" style="width:{row['score']*100:.0f}%; background: linear-gradient(90deg, #8bb6ff, #c7a0ff);"></div>
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-    st.markdown(
-        f"<div class='soft-note'><span class='muted'>Text weight: {results['fusion']['text_weight']:.0%} • Questionnaire weight: {results['fusion']['questionnaire_weight']:.0%}</span></div>",
-        unsafe_allow_html=True,
-    )
-    st.markdown("</div>", unsafe_allow_html=True)
-
-
-def render_timeline(results) -> None:
-    timeline_df = pd.DataFrame(results["timeline"])
-    if timeline_df.empty:
-        st.info("No sentence-level timeline available.")
-        return
-
-    fig = go.Figure()
-    fig.add_trace(
-        go.Scatter(
-            x=timeline_df["step"],
-            y=timeline_df["sentiment"],
-            mode="lines+markers",
-            line=dict(color="#8bb6ff", width=3),
-            marker=dict(size=9, color="#c7a0ff"),
-            text=timeline_df["sentence"],
-            hovertemplate="Sentence %{x}<br>Sentiment %{y:.2f}<br>%{text}<extra></extra>",
-        )
-    )
-    fig.update_layout(
-        height=320,
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-        margin=dict(l=10, r=10, t=10, b=10),
-        font=dict(color="#edf2ff"),
-        yaxis=dict(range=[-1, 1], gridcolor="rgba(255,255,255,0.08)"),
-        xaxis=dict(gridcolor="rgba(255,255,255,0.05)", title="Sentence"),
-    )
-    st.plotly_chart(fig, use_container_width=True)
-    st.caption("Higher values are more positive, lower values are heavier or more negative.")
-
-
-def render_highlighted_text(results) -> None:
-    st.markdown(
-        """
-        <div class="card">
-            <div class="section-label">Highlight Insights</div>
-            <div class="section-title">Words and phrases shaping the analysis</div>
-        """,
-        unsafe_allow_html=True,
-    )
-    st.markdown(f"<div class='highlight-box'>{results['highlighted_text_html']}</div>", unsafe_allow_html=True)
-    for line in results["highlight_legend"]:
-        st.markdown(f"- {line}")
-    st.markdown("</div>", unsafe_allow_html=True)
-
-
-def render_key_signals(results) -> None:
-    st.markdown(
-        """
-        <div class="card">
-            <div class="section-label">Key Signals</div>
-            <div class="section-title">Language patterns influencing the output</div>
-        """,
-        unsafe_allow_html=True,
-    )
-    for feature_name, value, explanation in results["key_signals"]:
-        st.markdown(
-            f"""
-            <div class="signal-box">
-                <strong>{feature_name}</strong> • {value:.2f}<br>
-                <span class="muted">{explanation}</span>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-    st.markdown("</div>", unsafe_allow_html=True)
-
-
-def render_overview_tab(results) -> None:
+def render_overview_results(results: Dict):
+    """Render main results overview tab."""
     col1, col2, col3 = st.columns(3)
+
+    # Mental State
     with col1:
+        state = results["mental_state"]["label"]
         st.markdown(
             f"""
-            <div class="stat">
+            <div class="card">
                 <div class="stat-label">Mental State</div>
-                <div class="stat-value" style="color:{state_color(results['mental_state']['label'])};">{results['mental_state']['label']}</div>
-                <div class="stat-subtle">{results['reflection_summary']}</div>
+                <div class="stat-value" style="color: {state_to_color(state)};">{state}</div>
+                <div style="color: #c7a0ff; font-size: 0.85rem; margin-top: 8px;">
+                    {results["mental_state"]["summary"]}
+                </div>
             </div>
             """,
             unsafe_allow_html=True,
         )
+
+    # MBTI Primary
     with col2:
         primary = results["mbti_primary"]
         st.markdown(
             f"""
-            <div class="stat">
-                <div class="stat-label">Primary MBTI Fit</div>
-                <div class="stat-value">{primary['type']}</div>
-                <div class="stat-subtle">Confidence: {primary['probability']:.0f}%</div>
+            <div class="card">
+                <div class="stat-label">MBTI Fit</div>
+                <div class="stat-value">{primary["type"]}</div>
+                <div style="color: #a7b1d1; font-size: 0.8rem; margin-top: 8px;">
+                    Confidence: {primary["probability"]:.0f}%
+                </div>
             </div>
             """,
             unsafe_allow_html=True,
         )
+
+    # Self-Awareness
     with col3:
+        sa = results["self_awareness"]
         st.markdown(
             f"""
-            <div class="stat">
-                <div class="stat-label">Self-Awareness Score</div>
-                <div class="stat-value">{results['self_awareness']['score']}/100</div>
-                <div class="stat-subtle">{results['self_awareness']['label']}</div>
+            <div class="card">
+                <div class="stat-label">Self-Awareness</div>
+                <div class="stat-value">{sa["score"]}/100</div>
+                <div style="color: #8bb6ff; font-size: 0.8rem; margin-top: 8px;">
+                    {sa["label"]}
+                </div>
             </div>
             """,
             unsafe_allow_html=True,
         )
 
-    render_memory_message(results.get("memory_message", ""))
-    render_list_card("Emotional Summary", "How the emotional signal looks", results["emotional_analysis"]["insights"])
-    render_progress_metric(
-        "Text Signal Strength",
-        int(round(results["fusion"]["text_strength"] * 100)),
-        "#8bb6ff",
-        "Higher signal means the text carried stronger evidence on its own.",
-    )
+    # Session memory message
+    if results.get("memory_message"):
+        st.markdown(
+            f"""
+            <div class="disclaimer">
+                {results["memory_message"]}
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
-
-def render_insights_tab(results) -> None:
-    col1, col2 = st.columns(2)
-    with col1:
-        render_list_card("Thought Patterns", "How the thinking flow reads", results["thought_patterns"])
-        render_list_card("Mental Signals", "Non-clinical strain indicators", results["mental_signals"])
-    with col2:
-        render_list_card("Communication Style", "How the writing comes across", results["communication_style"])
-        render_timeline(results)
-
-
-def render_personality_tab(results) -> None:
-    left, right = st.columns([1.05, 0.95])
-    with left:
-        render_mbti_matches(results)
-        render_questionnaire_summary(results)
-    with right:
-        render_highlighted_text(results)
-        render_key_signals(results)
-
-
-def render_growth_tab(results) -> None:
-    col1, col2 = st.columns(2)
-    with col1:
-        render_list_card("Strengths", "What already looks strong", results["strengths"])
-        render_list_card("Growth Mode", "How you can improve", results["growth_mode"])
-    with col2:
-        breakdown = results["self_awareness"]["breakdown"]
-        render_progress_metric("Clarity", breakdown["clarity"], "#8bb6ff")
-        render_progress_metric("Emotional Stability", breakdown["emotional_stability"], "#ffb177")
-        render_progress_metric("Reflection Depth", breakdown["reflection_depth"], "#c7a0ff")
-
-
-def render_results(results) -> None:
-    overview_tab, insights_tab, personality_tab, growth_tab = st.tabs(
-        ["Overview", "Insights", "Personality", "Growth"]
-    )
-    with overview_tab:
-        render_overview_tab(results)
-    with insights_tab:
-        render_insights_tab(results)
-    with personality_tab:
-        render_personality_tab(results)
-    with growth_tab:
-        render_growth_tab(results)
-
-    st.markdown(
-        f"<div class='soft-note'><span class='muted'>{results['confidence_note']} {results['disclaimer']}</span></div>",
-        unsafe_allow_html=True,
-    )
-
-
-def render_compare_section(analyzer: PersonalityAnalyzer) -> None:
+    # Emotional Analysis
     st.markdown(
         """
         <div class="card">
-            <div class="section-label">Compare Entries</div>
-            <div class="section-title">Before vs after</div>
-            <div class="muted">Compare two journal entries to see how your tone, structure, and overall reading changed.</div>
+            <div class="section-label">❤️ Emotional Signature</div>
+            <div class="section-title">How You're Feeling</div>
         </div>
         """,
         unsafe_allow_html=True,
     )
+    for insight in results["emotional_analysis"]["insights"]:
+        st.markdown(
+            f'<div class="insight-item">{insight}</div>',
+            unsafe_allow_html=True,
+        )
+
+
+def render_insights_tab(results: Dict):
+    """Render detailed insights tab."""
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.markdown(
+            """
+            <div class="card">
+                <div class="section-label">🔄 Thought Patterns</div>
+                <div class="section-title">How Your Mind Is Working</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        for pattern in results["thought_patterns"]:
+            st.markdown(
+                f'<div class="insight-item">{pattern}</div>',
+                unsafe_allow_html=True,
+            )
+
+    with col2:
+        st.markdown(
+            """
+            <div class="card">
+                <div class="section-label">⚠️ Mental Signals</div>
+                <div class="section-title">What the Language Shows</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        for signal in results["mental_signals"]:
+            st.markdown(
+                f'<div class="insight-item">{signal}</div>',
+                unsafe_allow_html=True,
+            )
+
+    # Communication Style
+    st.markdown(
+        """
+        <div class="card">
+            <div class="section-label">🗣️ Communication Style</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    for style in results["communication_style"]:
+        st.markdown(
+            f'<div class="insight-item">{style}</div>',
+            unsafe_allow_html=True,
+        )
+
+    # Timeline visualization
+    if results.get("timeline"):
+        st.markdown(
+            """
+            <div class="card">
+                <div class="section-label">📈 Emotional Journey</div>
+                <div class="section-title">Sentiment Through Your Entry</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        timeline_df = pd.DataFrame(results["timeline"])
+        fig = go.Figure()
+        fig.add_trace(
+            go.Scatter(
+                x=timeline_df["step"],
+                y=timeline_df["sentiment"],
+                mode="lines+markers",
+                line=dict(color="#8bb6ff", width=3),
+                marker=dict(size=8, color="#c7a0ff"),
+                hovertemplate="Sentence %{x}<br>Sentiment: %{y:.2f}<extra></extra>",
+            )
+        )
+        fig.update_layout(
+            height=280,
+            showlegend=False,
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+            font=dict(color="#a7b1d1", size=11),
+            margin=dict(l=10, r=10, t=10, b=10),
+            yaxis=dict(gridcolor="rgba(255,255,255,0.08)", range=[-1, 1]),
+            xaxis=dict(gridcolor="rgba(255,255,255,0.05)"),
+        )
+        st.plotly_chart(fig, use_container_width=True)
+
+
+def render_personality_tab(results: Dict):
+    """Render personality type tab."""
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.markdown(
+            """
+            <div class="card">
+                <div class="section-label">🎭 MBTI Spectrum</div>
+                <div class="section-title">Top Type Matches</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        for match in results["mbti_matches"]:
+            st.markdown(
+                f'<div class="insight-item"><strong>{match["type"]}</strong> — {match["probability"]:.0f}%</div>',
+                unsafe_allow_html=True,
+            )
+
+        # Type explanations
+        st.markdown(
+            '<div style="background: rgba(139, 182, 255, 0.06); border-radius: 8px; padding: 12px; margin-top: 12px;">',
+            unsafe_allow_html=True,
+        )
+        for explanation in results["mbti_insights"]:
+            st.markdown(f'• {explanation}')
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    with col2:
+        st.markdown(
+            """
+            <div class="card">
+                <div class="section-label">🔍 Word Highlights</div>
+                <div class="section-title">What Influenced the Reading</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        st.markdown(results["highlighted_text_html"], unsafe_allow_html=True)
+        st.caption("\n".join(results["highlight_legend"]))
+
+
+def render_growth_tab(results: Dict):
+    """Render growth and next steps tab."""
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.markdown(
+            """
+            <div class="card">
+                <div class="section-label">✨ Strengths</div>
+                <div class="section-title">What You're Doing Well</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        for strength in results["strengths"]:
+            st.markdown(
+                f'<div class="strength-item">{strength}</div>',
+                unsafe_allow_html=True,
+            )
+
+    with col2:
+        st.markdown(
+            """
+            <div class="card">
+                <div class="section-label">🌱 Next Steps</div>
+                <div class="section-title">Growth Opportunities</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        for suggestion in results["suggestions"]:
+            st.markdown(
+                f'<div class="growth-item">{suggestion}</div>',
+                unsafe_allow_html=True,
+            )
+
+    # Reflection Prompts
+    if results.get("reflection_prompts"):
+        st.markdown(
+            """
+            <div class="card">
+                <div class="section-label">💭 Continue Reflecting</div>
+                <div class="section-title">Questions for Your Next Entry</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        for prompt in results["reflection_prompts"]:
+            st.markdown(
+                f'<div class="prompt-item">{prompt}</div>',
+                unsafe_allow_html=True,
+            )
+
+
+def render_comparison_section(analyzer: PersonalityAnalyzer):
+    """Render comparison feature."""
+    with st.expander("📊 Compare Two Entries", expanded=False):
+        st.markdown(
+            "Compare how your thinking, mood, and overall state changed between two different journal entries."
+        )
+
+        col1, col2 = st.columns(2)
+        with col1:
+            text1 = st.text_area(
+                "Earlier entry",
+                key="cmp_text1",
+                label_visibility="collapsed",
+                placeholder="An earlier entry...",
+                height=150,
+            )
+        with col2:
+            text2 = st.text_area(
+                "Later entry",
+                key="cmp_text2",
+                label_visibility="collapsed",
+                placeholder="A more recent entry...",
+                height=150,
+            )
+
+        if st.button("⚖️ Compare & Analyze", use_container_width=True):
+            if not text1.strip() or not text2.strip():
+                st.error("Please provide both entries.")
+                return
+
+            with st.spinner("Comparing entries..."):
+                comparison = analyzer.compare_texts(text1, text2)
+
+            if not comparison.get("success"):
+                st.error(comparison.get("error", "Comparison failed."))
+                return
+
+            if comparison.get("safe_mode"):
+                st.warning("One entry triggered the safety layer. Comparison paused.")
+                return
+
+            if comparison.get("low_signal"):
+                st.info("One entry is too low-signal for comparison.")
+                return
+
+            # Show comparison results
+            st.markdown("### Comparison Summary")
+            st.markdown(comparison["comparison_summary"])
+
+            cols = st.columns(len(comparison["shift_cards"]))
+            for col, card in zip(cols, comparison["shift_cards"]):
+                with col:
+                    st.markdown(
+                        f"""
+                        <div class="card">
+                            <div class="stat-label">{card["label"]}</div>
+                            <div style="font-size: 1.1rem; font-weight: 700; color: #8bb6ff; margin: 8px 0;">
+                                {card["after"]}
+                            </div>
+                            <div style="font-size: 0.8rem; color: #a7b1d1;">Was: {card["before"]}</div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
+
+            # Trait changes
+            if comparison.get("differences"):
+                st.subheader("Trait shifts")
+                df_diffs = pd.DataFrame(comparison["differences"])
+                st.dataframe(df_diffs, use_container_width=True, hide_index=True)
+
+
+def render_safe_mode(results: Dict):
+    """Render safe mode warning."""
+    st.markdown(
+        f"""
+        <div class="safe-mode-box">
+            <h3 style="color: #ffb177; margin-top: 0;">⚠️ Supportive Check-In</h3>
+            <p>{results["support_message"]}</p>
+            <p><strong>Resources:</strong> If you're in crisis, please reach out to a counselor or trusted person.</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_low_signal(results: Dict):
+    """Render low signal warning."""
+    st.markdown(
+        """
+        <div class="card">
+            <div class="section-label">📌 Low Signal Entry</div>
+            <div class="section-title">More Detail Needed</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.markdown(f"**{results['reflection_summary']}**")
 
     col1, col2 = st.columns(2)
     with col1:
-        text1 = st.text_area(
-            "Entry A",
-            key="compare_a",
-            label_visibility="collapsed",
-            placeholder="Earlier entry...",
-        )
+        st.markdown("**Why this isn't enough:**")
+        for pattern in results["thought_patterns"]:
+            st.markdown(f'<div class="insight-item">{pattern}</div>', unsafe_allow_html=True)
     with col2:
-        text2 = st.text_area(
-            "Entry B",
-            key="compare_b",
-            label_visibility="collapsed",
-            placeholder="Later entry...",
-        )
+        st.markdown("**Try this next time:**")
+        for suggestion in results["suggestions"]:
+            st.markdown(f'<div class="growth-item">{suggestion}</div>', unsafe_allow_html=True)
 
-    if st.button("Compare Entries", use_container_width=True):
-        if not text1.strip() or not text2.strip():
-            st.error("Enter both texts before comparing them.")
+
+# ============================================================================
+# MAIN APP LOGIC
+# ============================================================================
+
+def main():
+    """Main application flow."""
+    analyzer = load_analyzer()
+    render_hero()
+
+    # Input layout
+    col_input, col_q = st.columns([1.3, 1.0])
+
+    with col_input:
+        text = render_input_area()
+
+    with col_q:
+        questionnaire = render_questionnaire()
+
+    # Analyze button
+    col1, col2 = st.columns([0.35, 0.65])
+    with col1:
+        analyze_button = st.button("🔍 Analyze", use_container_width=True)
+    with col2:
+        st.caption("The questionnaire helps clarify MBTI fit when text alone is ambiguous.")
+
+    if analyze_button:
+        if not text.strip():
+            st.error("Write something before analyzing.")
             return
 
-        comparison = analyzer.compare_texts(text1, text2)
-        st.session_state.compare_result = comparison
+        # Load previous result for session memory
+        previous = st.session_state.get("last_result")
 
-    comparison = st.session_state.get("compare_result")
-    if not comparison:
-        return
-    if not comparison.get("success"):
-        st.error(comparison.get("error", "Comparison failed."))
-        return
-    if comparison.get("safe_mode") or comparison.get("low_signal"):
-        st.info(comparison["comparison_summary"])
-        return
+        with st.spinner("Analyzing your thoughts..."):
+            result = analyzer.analyze(text, questionnaire=questionnaire)
 
-    st.markdown(
-        f"""
-        <div class="card">
-            <div class="section-label">Comparison Summary</div>
-            <div class="section-title">{comparison['comparison_summary']}</div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+        if result.get("success"):
+            if not result.get("safe_mode") and not result.get("low_signal"):
+                # Add session memory message if there's a previous result
+                if previous:
+                    before = previous["self_awareness"]["score"]
+                    after = result["self_awareness"]["score"]
+                    before_state = previous["mental_state"]["label"]
+                    after_state = result["mental_state"]["label"]
 
-    cols = st.columns(len(comparison["shift_cards"]))
-    for col, card in zip(cols, comparison["shift_cards"]):
-        with col:
+                    if after >= before + 8:
+                        result["memory_message"] = f"📈 You're clearer today ({before} → {after}/100)"
+                    elif after <= before - 8:
+                        result["memory_message"] = f"📉 Today feels less settled ({before} → {after}/100)"
+                    elif before_state != after_state:
+                        result["memory_message"] = f"State shift: {before_state} → {after_state}"
+
+                # Update session history
+                st.session_state.last_result = result
+
+            st.session_state.analysis_result = result
+
+    # Display results
+    result = st.session_state.get("analysis_result")
+    if result:
+        if not result.get("success"):
+            st.error(f"Analysis error: {result.get('error')}")
+        elif result.get("safe_mode"):
+            render_safe_mode(result)
+        elif result.get("low_signal"):
+            render_low_signal(result)
+        else:
+            # Main results with tabs
+            tab1, tab2, tab3, tab4 = st.tabs(["Overview", "Insights", "Personality", "Growth"])
+
+            with tab1:
+                render_overview_results(result)
+
+            with tab2:
+                render_insights_tab(result)
+
+            with tab3:
+                render_personality_tab(result)
+
+            with tab4:
+                render_growth_tab(result)
+
+            # Disclaimer
             st.markdown(
                 f"""
-                <div class="stat">
-                    <div class="stat-label">{card['label']}</div>
-                    <div class="stat-value" style="font-size:1.25rem;">{card['after']}</div>
-                    <div class="stat-subtle">Before: {card['before']}</div>
+                <div class="disclaimer">
+                    {result["disclaimer"]}
                 </div>
                 """,
                 unsafe_allow_html=True,
             )
 
-    st.dataframe(pd.DataFrame(comparison["differences"]), use_container_width=True, hide_index=True)
-
-
-def main() -> None:
-    analyzer = load_analyzer()
-    render_hero()
-
-    input_col, questionnaire_col = st.columns([1.35, 1.0])
-    with input_col:
-        text = render_input_area()
-    with questionnaire_col:
-        questionnaire = render_questionnaire()
-
-    action_col, re_col = st.columns([0.3, 0.7])
-    with action_col:
-        analyze_clicked = st.button("Analyze My Thoughts", use_container_width=True)
-    with re_col:
-        st.caption("Text usually carries most of the weight. The questionnaire helps when the entry is shorter or more ambiguous.")
-
-    if analyze_clicked:
-        if not text.strip():
-            st.error("Write your thoughts before running the analysis.")
-            return
-
-        previous = st.session_state.get("last_successful_result")
-        with st.spinner("Blending text signals with your quick check-in..."):
-            result = analyzer.analyze(text, questionnaire=questionnaire)
-
-        if (
-            result.get("success")
-            and not result.get("safe_mode")
-            and not result.get("low_signal")
-        ):
-            result["memory_message"] = build_memory_message(previous, result) if previous else ""
-            st.session_state.last_successful_result = result
-            history = st.session_state.get("analysis_history", [])
-            history.append(
-                {
-                    "mental_state": result["mental_state"],
-                    "self_awareness": result["self_awareness"],
-                    "mbti_primary": result["mbti_primary"],
-                    "emotional_analysis": result["emotional_analysis"],
-                }
-            )
-            st.session_state.analysis_history = history[-5:]
-
-        st.session_state.analysis_result = result
-
-    result = st.session_state.get("analysis_result")
-    if result:
-        if not result.get("success"):
-            st.error(result.get("error", "Analysis failed."))
-        elif result.get("safe_mode"):
-            render_safe_message(result)
-        elif result.get("low_signal"):
-            render_low_signal(result)
-        else:
-            render_results(result)
-
-    render_compare_section(analyzer)
+    # Comparison feature
+    render_comparison_section(analyzer)
 
 
 if __name__ == "__main__":

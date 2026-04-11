@@ -23,6 +23,7 @@ from src.interpretation import (
     ConfidenceCalibrator,
     FeatureImportanceExplainer,
     PersonalityInterpreter,
+    ReflectionPromptGenerator,
 )
 from utils import TRAITS, get_config, mbti_to_big_five
 
@@ -53,6 +54,7 @@ class PersonalityAnalyzer:
         self.behavior_generator = BehavioralInsightGenerator()
         self.feature_explainer = FeatureImportanceExplainer()
         self.confidence_calibrator = ConfidenceCalibrator()
+        self.prompt_generator = ReflectionPromptGenerator()
         self.safety_patterns = [
             r"\bkill myself\b",
             r"\bwant to die\b",
@@ -203,6 +205,7 @@ class PersonalityAnalyzer:
             mental_signals = self.interpreter.mental_signals(latent_profile, feature_values)
             strengths = self.interpreter.strengths(latent_profile, feature_values)
             suggestions = self.interpreter.suggestions(latent_profile, feature_values)
+            reflection_prompts = self.prompt_generator.generate_prompts(latent_profile, mental_state["label"], thought_patterns, len(cleaned_text))
             self_awareness = self._self_awareness_score(latent_profile, feature_values)
 
             return {
@@ -221,6 +224,7 @@ class PersonalityAnalyzer:
                 "mental_signals": mental_signals,
                 "strengths": strengths,
                 "suggestions": suggestions,
+                "reflection_prompts": reflection_prompts,
                 "growth_mode": suggestions[:3],
                 "self_awareness": self_awareness,
                 "fusion": {
