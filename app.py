@@ -1,861 +1,867 @@
 """
-Cognisight - Professional Personality Intelligence Platform
-
-A modern, AI-powered personality analysis tool for understanding human behavior
-through text analysis. Built with advanced NLP and machine learning.
-
-Features:
-- Comprehensive Big Five + Practical personality trait analysis
-- Multi-model sentiment analysis (VADER, RoBERTa, Combined)
-- Text comparison and behavioral pattern recognition
-- Emotional shift detection and confidence scoring
-- Interactive data visualizations and export capabilities
-- Professional UI with modern design principles
-
-Version: 3.0.0 - Professional Edition
+Cognisight Streamlit application.
 """
 
-import streamlit as st
+from typing import Dict, List
+
 import pandas as pd
-from analyzer import PersonalityAnalyzer
-import plotly.express as px
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
-import json
-import time
-from datetime import datetime
-import warnings
+import streamlit as st
 
-# Suppress warnings for cleaner output
-warnings.filterwarnings('ignore')
+from analyzer import PersonalityAnalyzer
 
-# Page configuration with professional branding
+
+QUESTIONNAIRE_ITEMS = [
+    {
+        "id": "q_energy",
+        "dimension": "IE",
+        "question": "After a draining week, what restores you more?",
+        "left": "Quiet time alone",
+        "right": "Time with other people",
+    },
+    {
+        "id": "q_processing",
+        "dimension": "IE",
+        "question": "When you're thinking through something difficult, you usually...",
+        "left": "Process internally first",
+        "right": "Think out loud with others",
+    },
+    {
+        "id": "q_patterns",
+        "dimension": "NS",
+        "question": "When learning something new, what pulls you in first?",
+        "left": "Patterns and possibilities",
+        "right": "Facts and concrete details",
+    },
+    {
+        "id": "q_decisions",
+        "dimension": "TF",
+        "question": "What weighs more in decisions?",
+        "left": "Logic and consistency",
+        "right": "Values and people impact",
+    },
+    {
+        "id": "q_structure",
+        "dimension": "JP",
+        "question": "Your best days usually feel...",
+        "left": "Mapped out and structured",
+        "right": "Flexible and open-ended",
+    },
+    {
+        "id": "q_deadlines",
+        "dimension": "JP",
+        "question": "When a deadline is close, you prefer to...",
+        "left": "Lock a plan and follow it",
+        "right": "Adapt as you go",
+    },
+]
+
+ANSWER_TO_SCORE = {
+    "Left": 0.0,
+    "In Between": 0.5,
+    "Right": 1.0,
+}
+
+
 st.set_page_config(
-    page_title="Cognisight - Personality Intelligence",
-    page_icon="🎯",
+    page_title="Cognisight",
+    page_icon="C",
     layout="wide",
-    initial_sidebar_state="expanded",
-    menu_items={
-        'About': 'Professional personality analysis platform powered by advanced AI'
-    }
+    initial_sidebar_state="collapsed",
 )
 
-# Professional CSS styling with modern design
-st.markdown("""
-<style>
-    /* ===== MODERN DARK THEME ===== */
-    .main {
-        background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
-        color: #ffffff;
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    }
 
-    .stApp {
-        background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
-        color: #ffffff;
-    }
-
-    /* ===== TYPOGRAPHY ===== */
-    h1, h2, h3, h4, h5, h6 {
-        color: #ffffff !important;
-        font-weight: 600;
-        letter-spacing: -0.025em;
-    }
-
-    .main-title {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-        font-size: 3.5rem;
-        font-weight: 800;
-        text-align: center;
-        margin: 2rem 0;
-        letter-spacing: -0.05em;
-        text-shadow: 0 0 40px rgba(102, 126, 234, 0.3);
-        animation: titleGlow 3s ease-in-out infinite alternate;
-    }
-
-    @keyframes titleGlow {
-        from { filter: brightness(1) drop-shadow(0 0 20px rgba(102, 126, 234, 0.3)); }
-        to { filter: brightness(1.1) drop-shadow(0 0 30px rgba(102, 126, 234, 0.4)); }
-    }
-
-    .subtitle {
-        text-align: center;
-        color: #b8c5d6;
-        font-size: 1.25rem;
-        font-weight: 400;
-        margin-bottom: 3rem;
-        opacity: 0.9;
-    }
-
-    /* ===== PROFESSIONAL CARDS ===== */
-    .hero-card {
-        background: linear-gradient(135deg, rgba(30, 30, 47, 0.95) 0%, rgba(42, 42, 62, 0.95) 100%);
-        backdrop-filter: blur(20px);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 24px;
-        padding: 3rem;
-        margin: 2rem 0;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-        position: relative;
-        overflow: hidden;
-    }
-
-    .hero-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 4px;
-        background: linear-gradient(90deg, #667eea, #764ba2, #f093fb, #4facfe);
-        border-radius: 24px 24px 0 0;
-    }
-
-    .content-card {
-        background: linear-gradient(135deg, rgba(30, 30, 47, 0.9) 0%, rgba(42, 42, 62, 0.9) 100%);
-        backdrop-filter: blur(15px);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 16px;
-        padding: 2rem;
-        margin: 1.5rem 0;
-        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    .content-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-        border-color: rgba(102, 126, 234, 0.2);
-    }
-
-    .result-card {
-        background: linear-gradient(135deg, rgba(25, 25, 45, 0.95) 0%, rgba(35, 35, 55, 0.95) 100%);
-        backdrop-filter: blur(15px);
-        border: 1px solid rgba(255, 255, 255, 0.06);
-        border-radius: 12px;
-        padding: 1.5rem;
-        margin: 1rem 0;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
-        position: relative;
-    }
-
-    .result-card::after {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 4px;
-        height: 100%;
-        background: linear-gradient(180deg, #667eea, #764ba2);
-        border-radius: 12px 0 0 12px;
-    }
-
-    /* ===== FORM ELEMENTS ===== */
-    .stTextInput input, .stTextArea textarea {
-        background: rgba(30, 30, 47, 0.8) !important;
-        color: #ffffff !important;
-        border: 2px solid rgba(255, 255, 255, 0.1) !important;
-        border-radius: 12px !important;
-        padding: 1rem !important;
-        font-size: 1rem !important;
-        transition: all 0.3s ease !important;
-        backdrop-filter: blur(10px) !important;
-    }
-
-    .stTextInput input:focus, .stTextArea textarea:focus {
-        border-color: #667eea !important;
-        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2) !important;
-        background: rgba(30, 30, 47, 0.9) !important;
-    }
-
-    .stSelectbox select {
-        background: rgba(30, 30, 47, 0.8) !important;
-        color: #ffffff !important;
-        border: 2px solid rgba(255, 255, 255, 0.1) !important;
-        border-radius: 12px !important;
-        padding: 0.75rem !important;
-        backdrop-filter: blur(10px) !important;
-    }
-
-    /* ===== PROFESSIONAL BUTTONS ===== */
-    .stButton button {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-        color: white !important;
-        border: none !important;
-        border-radius: 12px !important;
-        padding: 0.875rem 2rem !important;
-        font-weight: 600 !important;
-        font-size: 1rem !important;
-        letter-spacing: 0.025em !important;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-        box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3) !important;
-        position: relative !important;
-        overflow: hidden !important;
-        text-transform: none !important;
-    }
-
-    .stButton button::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: -100%;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-        transition: left 0.6s ease !important;
-    }
-
-    .stButton button:hover::before {
-        left: 100%;
-    }
-
-    .stButton button:hover {
-        transform: translateY(-2px) !important;
-        box-shadow: 0 8px 30px rgba(102, 126, 234, 0.4) !important;
-    }
-
-    .stButton button:active {
-        transform: translateY(0) !important;
-    }
-
-    /* Primary action button */
-    .primary-btn button {
-        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%) !important;
-        box-shadow: 0 4px 20px rgba(79, 172, 254, 0.3) !important;
-    }
-
-    .primary-btn button:hover {
-        box-shadow: 0 8px 30px rgba(79, 172, 254, 0.4) !important;
-    }
-
-    /* ===== SIDEBAR DESIGN ===== */
-    .stSidebar {
-        background: linear-gradient(180deg, #1e1e2f 0%, #2a2a3e 100%) !important;
-        border-right: 1px solid rgba(255, 255, 255, 0.1) !important;
-        backdrop-filter: blur(20px) !important;
-    }
-
-    .sidebar-header {
-        background: linear-gradient(135deg, rgba(30, 30, 47, 0.9) 0%, rgba(42, 42, 62, 0.9) 100%);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 12px;
-        padding: 1.5rem;
-        margin-bottom: 2rem;
-        text-align: center;
-    }
-
-    /* ===== TABS STYLING ===== */
-    .stTabs [data-baseweb="tab-list"] {
-        background: linear-gradient(135deg, rgba(30, 30, 47, 0.8) 0%, rgba(42, 42, 62, 0.8) 100%);
-        border-radius: 16px;
-        padding: 0.5rem;
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        gap: 8px;
-        margin-bottom: 2rem;
-    }
-
-    .stTabs [data-baseweb="tab"] {
-        background: rgba(50, 50, 70, 0.5);
-        color: #b8c5d6;
-        border-radius: 12px;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        border: 1px solid transparent;
-        font-weight: 500;
-        padding: 0.75rem 1.5rem;
-    }
-
-    .stTabs [data-baseweb="tab"]:hover {
-        background: rgba(70, 70, 90, 0.7);
-        color: #ffffff;
-        transform: translateY(-2px);
-    }
-
-    .stTabs [data-baseweb="tab"][aria-selected="true"] {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
-        border: 1px solid rgba(102, 126, 234, 0.5);
-    }
-
-    /* ===== METRICS STYLING ===== */
-    .stMetric {
-        background: rgba(30, 30, 47, 0.6);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 12px;
-        padding: 1.5rem;
-        backdrop-filter: blur(10px);
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-        text-align: center;
-    }
-
-    .stMetric label {
-        color: #b8c5d6 !important;
-        font-size: 0.875rem !important;
-        font-weight: 500 !important;
-        text-transform: uppercase !important;
-        letter-spacing: 0.05em !important;
-    }
-
-    .stMetric .metric-value {
-        color: #ffffff !important;
-        font-weight: 700 !important;
-        font-size: 2rem !important;
-        margin: 0.5rem 0 !important;
-    }
-
-    .stMetric .metric-delta {
-        color: #4caf50 !important;
-        font-weight: 600 !important;
-    }
-
-    /* ===== PROGRESS BARS ===== */
-    .stProgress > div > div {
-        background: linear-gradient(90deg, #667eea, #764ba2, #f093fb);
-        border-radius: 8px;
-        height: 8px;
-    }
-
-    /* ===== CHECKBOXES ===== */
-    .stCheckbox label {
-        color: #ffffff !important;
-        font-weight: 500 !important;
-    }
-
-    /* ===== SUCCESS/INFO MESSAGES ===== */
-    .success-message {
-        background: linear-gradient(135deg, rgba(76, 175, 80, 0.2) 0%, rgba(139, 195, 74, 0.2) 100%);
-        border: 1px solid rgba(76, 175, 80, 0.3);
-        border-radius: 12px;
-        padding: 1rem;
-        margin: 1rem 0;
-        color: #81c784;
-        backdrop-filter: blur(10px);
-        animation: slideIn 0.5s ease-out;
-    }
-
-    .info-message {
-        background: linear-gradient(135deg, rgba(79, 172, 254, 0.2) 0%, rgba(0, 242, 254, 0.2) 100%);
-        border: 1px solid rgba(79, 172, 254, 0.3);
-        border-radius: 12px;
-        padding: 1rem;
-        margin: 1rem 0;
-        color: #4fc3f7;
-        backdrop-filter: blur(10px);
-    }
-
-    /* ===== ANIMATIONS ===== */
-    @keyframes slideIn {
-        from { transform: translateX(-20px); opacity: 0; }
-        to { transform: translateX(0); opacity: 1; }
-    }
-
-    @keyframes fadeInUp {
-        from { opacity: 0; transform: translateY(20px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-
-    /* ===== SCROLLBARS ===== */
-    ::-webkit-scrollbar {
-        width: 8px;
-    }
-
-    ::-webkit-scrollbar-track {
-        background: rgba(30, 30, 47, 0.3);
-        border-radius: 4px;
-    }
-
-    ::-webkit-scrollbar-thumb {
-        background: linear-gradient(180deg, #667eea, #764ba2);
-        border-radius: 4px;
-    }
-
-    ::-webkit-scrollbar-thumb:hover {
-        background: linear-gradient(180deg, #5a6fd8, #6a4190);
-    }
-
-    /* ===== RESPONSIVE DESIGN ===== */
-    @media (max-width: 768px) {
-        .main-title {
-            font-size: 2.5rem;
+st.markdown(
+    """
+    <style>
+        :root {
+            --panel: rgba(18, 26, 44, 0.88);
+            --panel-strong: rgba(22, 31, 54, 0.96);
+            --border: rgba(150, 164, 207, 0.14);
+            --text: #edf2ff;
+            --muted: #a7b1d1;
+            --blue: #8bb6ff;
+            --purple: #c7a0ff;
+            --pink: #ff9ed1;
+            --amber: #f6cf7a;
+            --orange: #ffb177;
+            --green: #94e6c1;
         }
 
-        .hero-card {
-            padding: 2rem 1.5rem;
+        .stApp {
+            background:
+                radial-gradient(circle at top left, rgba(139, 182, 255, 0.15), transparent 28%),
+                radial-gradient(circle at top right, rgba(199, 160, 255, 0.12), transparent 24%),
+                linear-gradient(180deg, #080d18 0%, #0c1221 100%);
         }
 
-        .content-card {
-            padding: 1.5rem 1rem;
+        .block-container {
+            max-width: 1180px;
+            padding-top: 2rem;
+            padding-bottom: 3rem;
         }
-    }
 
-    /* ===== UTILITY CLASSES ===== */
-    .text-center { text-align: center; }
-    .text-muted { color: #b8c5d6; }
-    .mb-3 { margin-bottom: 1rem; }
-    .mb-4 { margin-bottom: 1.5rem; }
-    .mt-3 { margin-top: 1rem; }
-    .mt-4 { margin-top: 1.5rem; }
-</style>
-""", unsafe_allow_html=True)
+        .hero, .card, .stat, .soft-note {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 26px;
+            box-shadow: 0 18px 50px rgba(0, 0, 0, 0.22);
+            animation: fadeUp 0.45s ease both;
+            transition: transform 0.22s ease, border-color 0.22s ease;
+        }
 
-# Initialize analyzer
+        .card:hover, .stat:hover {
+            transform: translateY(-2px);
+            border-color: rgba(199, 160, 255, 0.28);
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .hero {
+            padding: 32px 34px;
+            margin-bottom: 1rem;
+            background:
+                linear-gradient(135deg, rgba(139, 182, 255, 0.12), transparent 38%),
+                linear-gradient(180deg, rgba(24, 33, 57, 0.97), rgba(15, 21, 38, 0.97));
+        }
+
+        .card {
+            padding: 20px 22px;
+            margin-bottom: 1rem;
+            background: var(--panel-strong);
+        }
+
+        .stat {
+            padding: 18px 20px;
+            min-height: 124px;
+        }
+
+        .soft-note {
+            padding: 14px 16px;
+            margin-top: 0.8rem;
+            background: rgba(139, 182, 255, 0.08);
+        }
+
+        .eyebrow {
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            font-size: 0.75rem;
+            color: var(--green);
+            font-weight: 700;
+        }
+
+        .title {
+            color: var(--text);
+            font-size: 3rem;
+            line-height: 1;
+            font-weight: 800;
+            margin: 0.3rem 0 0.8rem 0;
+        }
+
+        .muted {
+            color: var(--muted);
+            font-size: 0.98rem;
+        }
+
+        .section-label {
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            font-size: 0.74rem;
+            color: var(--muted);
+            font-weight: 700;
+            margin-bottom: 0.45rem;
+        }
+
+        .section-title {
+            color: var(--text);
+            font-size: 1.18rem;
+            font-weight: 800;
+            margin-bottom: 0.35rem;
+        }
+
+        .stat-label {
+            color: var(--muted);
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-value {
+            color: var(--text);
+            font-size: 1.85rem;
+            font-weight: 800;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-subtle {
+            color: var(--muted);
+            font-size: 0.88rem;
+        }
+
+        .pill {
+            display: inline-block;
+            border-radius: 999px;
+            padding: 0.34rem 0.82rem;
+            margin-right: 0.45rem;
+            font-size: 0.84rem;
+            font-weight: 700;
+        }
+
+        .progress-shell {
+            margin-top: 0.65rem;
+        }
+
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+            color: var(--muted);
+            font-size: 0.86rem;
+            margin-bottom: 0.35rem;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.08);
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 999px;
+        }
+
+        .match-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .match-name {
+            color: var(--text);
+            font-weight: 700;
+            min-width: 56px;
+        }
+
+        .match-bar {
+            height: 10px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.08);
+            overflow: hidden;
+            flex: 1;
+        }
+
+        .match-fill {
+            height: 100%;
+            border-radius: 999px;
+            background: linear-gradient(90deg, var(--purple), var(--blue));
+        }
+
+        .signal-box, .highlight-box {
+            background: rgba(139, 182, 255, 0.06);
+            border: 1px solid rgba(139, 182, 255, 0.08);
+            border-radius: 16px;
+            padding: 14px 16px;
+            margin-bottom: 0.75rem;
+        }
+
+        .highlight-box {
+            color: var(--text);
+            line-height: 1.8;
+        }
+
+        .stTextArea textarea {
+            background: rgba(16, 23, 40, 0.96) !important;
+            color: var(--text) !important;
+            border: 1px solid var(--border) !important;
+            border-radius: 18px !important;
+            min-height: 260px !important;
+            padding: 1rem !important;
+        }
+
+        .stButton button {
+            background: linear-gradient(90deg, #8bb6ff, #c7a0ff) !important;
+            color: #09101d !important;
+            border: none !important;
+            border-radius: 999px !important;
+            padding: 0.85rem 1.3rem !important;
+            font-weight: 800 !important;
+        }
+
+        .stTabs [data-baseweb="tab-list"] {
+            gap: 0.5rem;
+        }
+
+        .stTabs [data-baseweb="tab"] {
+            background: rgba(18, 26, 44, 0.72);
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            color: var(--text);
+            padding: 0.48rem 0.95rem;
+        }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+
 @st.cache_resource
-def get_analyzer():
-    """Get cached personality analyzer instance."""
+def load_analyzer() -> PersonalityAnalyzer:
     return PersonalityAnalyzer()
 
-analyzer = get_analyzer()
 
-# ===== PROFESSIONAL HEADER SECTION =====
-def render_header():
-    """Render the professional header section."""
-    col1, col2, col3 = st.columns([1, 2, 1])
-
-    with col2:
-        st.markdown('<h1 class="main-title">🎯 Cognisight</h1>', unsafe_allow_html=True)
-        st.markdown('<p class="subtitle">Professional Personality Intelligence Platform</p>', unsafe_allow_html=True)
-
-        # Feature highlights
-        feature_cols = st.columns(3)
-        with feature_cols[0]:
-            st.metric("🧠 Traits Analyzed", "9", "+2")
-        with feature_cols[1]:
-            st.metric("🎯 Accuracy Rate", "94%", "+5%")
-        with feature_cols[2]:
-            st.metric("⚡ Analysis Speed", "<1s", "Fast")
-
-# ===== SIDEBAR CONFIGURATION =====
-def render_sidebar():
-    """Render the professional sidebar with controls."""
-    with st.sidebar:
-        st.markdown("""
-        <div class="sidebar-header">
-            <h3 style="color: #667eea; margin-bottom: 0.5rem;">🎛️ Analysis Controls</h3>
-            <p style="color: #b8c5d6; font-size: 0.9rem; margin: 0;">Configure your personality analysis</p>
+def render_hero() -> None:
+    st.markdown(
+        """
+        <div class="hero">
+            <div class="eyebrow">Hybrid Journaling Intelligence</div>
+            <div class="title">Cognisight</div>
+            <div class="muted">
+                Cognisight combines text analysis with a tiny personality questionnaire to create a
+                more personalized, trustworthy journaling assistant. It reads your writing, checks
+                your preferences, and turns both into calm, useful guidance.
+            </div>
         </div>
-        """, unsafe_allow_html=True)
-
-        # Model selection
-        st.subheader("🤖 Analysis Model")
-        model_option = st.selectbox(
-            "Choose analysis model:",
-            ["Basic (VADER)", "Advanced (RoBERTa)", "Combined"],
-            index=2,
-            help="Basic: Fast analysis | Advanced: Detailed analysis | Combined: Best of both"
-        )
-
-        st.markdown("---")
-
-        # Display options
-        st.subheader("📊 Display Options")
-        show_wordcloud = st.checkbox("📈 Word Cloud", value=True, help="Generate word frequency visualization")
-        show_details = st.checkbox("📋 Detailed Analysis", value=True, help="Show comprehensive analysis breakdown")
-        show_trends = st.checkbox("📈 Sentiment Trends", value=True, help="Display sentiment over time")
-        show_shifts = st.checkbox("🌊 Emotional Shifts", value=True, help="Detect emotional changes")
-        show_confidence = st.checkbox("🎯 Confidence Scores", value=True, help="Show prediction confidence levels")
-        show_export = st.checkbox("💾 Export Options", value=False, help="Enable data export features")
-
-        return model_option, show_wordcloud, show_details, show_trends, show_shifts, show_confidence, show_export
-
-# ===== INPUT SECTION =====
-def render_input_section():
-    """Render the professional input section."""
-    st.markdown("""
-    <div class="hero-card">
-        <h2 style="color: #667eea; margin-bottom: 1.5rem; text-align: center;">📝 Text Analysis Input</h2>
-        <p style="color: #b8c5d6; text-align: center; margin-bottom: 2rem; font-size: 1.1rem;">
-            Enter any text to analyze personality traits, communication patterns, and behavioral insights
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
-
-    # Text input area
-    text = st.text_area(
-        "Enter your text for analysis:",
-        height=200,
-        placeholder="Paste your text here... (minimum 50 words for best results)",
-        help="Enter conversations, essays, social media posts, or any text to analyze personality patterns"
+        """,
+        unsafe_allow_html=True,
     )
 
-    # Text statistics
-    if text.strip():
-        word_count = len(text.split())
-        char_count = len(text)
 
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.metric("📝 Words", f"{word_count:,}")
-        with col2:
-            st.metric("📊 Characters", f"{char_count:,}")
-        with col3:
-            reading_time = max(1, word_count // 200)  # Rough reading time estimate
-            st.metric("⏱️ Reading Time", f"~{reading_time} min")
-
-        # Quality indicator
-        if word_count < 50:
-            st.markdown("""
-            <div class="info-message">
-                <strong>💡 Tip:</strong> For more accurate analysis, try entering at least 50 words of text.
-            </div>
-            """, unsafe_allow_html=True)
-        elif word_count >= 100:
-            st.markdown("""
-            <div class="success-message">
-                <strong>✅ Excellent!</strong> Your text provides rich data for comprehensive personality analysis.
-            </div>
-            """, unsafe_allow_html=True)
-
-    return text
-
-# ===== ANALYSIS EXECUTION =====
-def execute_analysis(text, model_option, show_wordcloud):
-    """Execute the personality analysis with professional UI feedback."""
-    if not text.strip():
-        st.error("❌ Please enter some text to analyze.")
-        return None
-
-    word_count = len(text.split())
-    if word_count < 5:
-        st.error("❌ Please enter at least 5 words for meaningful analysis.")
-        return None
-
-    # Professional loading animation
+def render_input_area() -> str:
     with st.container():
-        st.markdown("""
-        <div style="text-align: center; padding: 3rem; background: linear-gradient(135deg, rgba(30, 30, 47, 0.9) 0%, rgba(42, 42, 62, 0.9) 100%); border-radius: 16px; margin: 2rem 0; backdrop-filter: blur(15px); border: 1px solid rgba(255, 255, 255, 0.1);">
-            <div style="display: inline-block; animation: spin 2s linear infinite; margin-bottom: 1rem;">
-                <span style="font-size: 3rem;">🎯</span>
-            </div>
-            <h3 style="color: #667eea; margin-bottom: 1rem;">AI Analysis in Progress</h3>
-            <p style="color: #b8c5d6; margin-bottom: 2rem;">Uncovering personality patterns and behavioral insights...</p>
-        </div>
-        """, unsafe_allow_html=True)
-
-        progress_bar = st.progress(0)
-        status_text = st.empty()
-
-        # Analysis steps with professional feedback
-        analysis_steps = [
-            ("🔍 Initializing AI models...", 10),
-            ("📊 Analyzing linguistic patterns...", 25),
-            ("🧠 Processing personality traits...", 45),
-            ("🎭 Evaluating behavioral patterns...", 65),
-            ("📈 Generating comprehensive insights...", 85),
-            ("✨ Finalizing analysis results...", 95)
-        ]
-
-        for step_text, progress_value in analysis_steps:
-            status_text.markdown(f"""
-            <div style="text-align: center; color: #667eea; font-weight: 500; font-size: 1.1rem;">
-                {step_text}
-            </div>
-            """, unsafe_allow_html=True)
-            progress_bar.progress(progress_value)
-            time.sleep(0.8)
-
-        # Perform analysis
-        model_choice = get_model_choice(model_option)
-        results = analyzer.analyze(text, model=model_choice, include_wordcloud=show_wordcloud)
-
-        progress_bar.progress(100)
-        status_text.markdown("""
-        <div style="text-align: center; color: #4caf50; font-weight: bold; font-size: 1.3rem;">
-            ✅ Analysis Complete!
-        </div>
-        """, unsafe_allow_html=True)
-        time.sleep(0.5)
-
-        # Clear loading UI
-        progress_bar.empty()
-        status_text.empty()
-
-        return results
-
-# ===== RESULTS DISPLAY =====
-def display_analysis_results(results, original_text, model_option, show_wordcloud, show_details, show_trends, show_shifts, show_export):
-    """Display analysis results in a professional, organized manner."""
-
-    # Overview section
-    st.markdown("""
-    <div class="content-card">
-        <h2 style="color: #667eea; margin-bottom: 1.5rem;">📊 Analysis Overview</h2>
-    </div>
-    """, unsafe_allow_html=True)
-
-    # Personality traits overview
-    if "personality" in results:
-        personality = results["personality"]
-
-        st.subheader("🧠 Personality Profile")
-
-        # Create a professional grid layout for traits
-        trait_cols = st.columns(3)
-
-        trait_data = []
-        for trait_name, trait_info in personality.items():
-            if isinstance(trait_info, dict) and "score" in trait_info:
-                score = trait_info["score"]
-                confidence = trait_info.get("confidence", 0.8)
-
-                # Determine color based on score
-                if score > 0.7:
-                    color = "#4caf50"
-                    level = "High"
-                elif score > 0.4:
-                    color = "#ff9800"
-                    level = "Medium"
-                else:
-                    color = "#2196f3"
-                    level = "Low"
-
-                trait_data.append({
-                    "name": trait_name,
-                    "score": score,
-                    "confidence": confidence,
-                    "color": color,
-                    "level": level
-                })
-
-        # Display traits in cards
-        for i, trait in enumerate(trait_data):
-            col_idx = i % 3
-            with trait_cols[col_idx]:
-                st.markdown(f"""
-                <div class="result-card">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                        <h4 style="margin: 0; color: {trait['color']};">{trait['name']}</h4>
-                        <span style="background: {trait['color']}20; color: {trait['color']}; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.8rem; font-weight: 600;">{trait['level']}</span>
-                    </div>
-                    <div style="margin-bottom: 0.5rem;">
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
-                            <span style="font-size: 0.9rem; color: #b8c5d6;">Score</span>
-                            <span style="font-weight: 600; color: #ffffff;">{trait['score']:.2f}</span>
-                        </div>
-                        <div style="width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden;">
-                            <div style="width: {trait['score']*100:.1f}%; height: 100%; background: {trait['color']}; border-radius: 3px; transition: width 0.5s ease;"></div>
-                        </div>
-                    </div>
-                    <div style="font-size: 0.8rem; color: #b8c5d6;">
-                        Confidence: {trait['confidence']:.1%}
-                    </div>
+        st.markdown(
+            """
+            <div class="card">
+                <div class="section-label">Write Your Thoughts</div>
+                <div class="section-title">Journal Entry</div>
+                <div class="muted">
+                    This tool is for self-reflection only and not a substitute for professional mental health support.
                 </div>
-                """, unsafe_allow_html=True)
-
-    # Detailed analysis sections
-    if show_details:
-        # Sentiment Analysis
-        if "sentiment" in results:
-            st.markdown("""
-            <div class="content-card">
-                <h3 style="color: #f093fb; margin-bottom: 1rem;">💭 Sentiment Analysis</h3>
             </div>
-            """, unsafe_allow_html=True)
+            """,
+            unsafe_allow_html=True,
+        )
+        return st.text_area(
+            "Write your thoughts",
+            label_visibility="collapsed",
+            placeholder="Write about what happened, what you are feeling, what keeps replaying in your mind, or what you are trying to figure out...",
+        )
 
-            sentiment = results["sentiment"]
-            if isinstance(sentiment, dict):
-                sent_cols = st.columns(3)
-                for i, (key, value) in enumerate(sentiment.items()):
-                    if i < 3:  # Limit to 3 columns
-                        with sent_cols[i]:
-                            if isinstance(value, (int, float)):
-                                st.metric(key.title(), f"{value:.2f}")
-                            else:
-                                st.metric(key.title(), str(value))
 
-        # Word Cloud
-        if show_wordcloud and "wordcloud" in results:
-            st.markdown("""
-            <div class="content-card">
-                <h3 style="color: #4facfe; margin-bottom: 1rem;">☁️ Word Frequency Analysis</h3>
-            </div>
-            """, unsafe_allow_html=True)
-
-            # Placeholder for word cloud - would need to implement visualization
-            st.info("📊 Word cloud visualization would be displayed here")
-
-    # Export options
-    if show_export:
-        st.markdown("""
-        <div class="content-card">
-            <h3 style="color: #4caf50; margin-bottom: 1rem;">💾 Export Results</h3>
+def render_questionnaire() -> Dict[str, float]:
+    st.markdown(
+        """
+        <div class="card">
+            <div class="section-label">Micro-Questionnaire</div>
+            <div class="section-title">Quick personality check-in</div>
+            <div class="muted">Six quick prompts help the app personalize MBTI-style matches when text alone is ambiguous.</div>
         </div>
-        """, unsafe_allow_html=True)
+        """,
+        unsafe_allow_html=True,
+    )
 
-        export_col1, export_col2 = st.columns(2)
+    dimension_scores: Dict[str, List[float]] = {}
+    col1, col2 = st.columns(2)
+    columns = [col1, col2]
 
-        with export_col1:
-            if st.button("📄 Export as JSON", use_container_width=True):
-                export_data = {
-                    "timestamp": datetime.now().isoformat(),
-                    "text_length": len(original_text),
-                    "model_used": model_option,
-                    "results": results
-                }
-                st.download_button(
-                    label="Download JSON",
-                    data=json.dumps(export_data, indent=2),
-                    file_name=f"cognisight_analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
-                    mime="application/json",
-                    use_container_width=True
-                )
-
-        with export_col2:
-            if st.button("📊 Export as CSV", use_container_width=True):
-                # Convert personality data to CSV format
-                if "personality" in results:
-                    csv_data = []
-                    for trait, data in results["personality"].items():
-                        if isinstance(data, dict):
-                            csv_data.append({
-                                "Trait": trait,
-                                "Score": data.get("score", 0),
-                                "Confidence": data.get("confidence", 0)
-                            })
-
-                    if csv_data:
-                        df = pd.DataFrame(csv_data)
-                        csv_string = df.to_csv(index=False)
-                        st.download_button(
-                            label="Download CSV",
-                            data=csv_string,
-                            file_name=f"cognisight_traits_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                            mime="text/csv",
-                            use_container_width=True
-                        )
-
-# ===== MAIN APPLICATION =====
-def main():
-    """Main application function with professional layout."""
-
-    # Render header
-    render_header()
-
-    # Render sidebar and get configuration
-    model_option, show_wordcloud, show_details, show_trends, show_shifts, show_confidence, show_export = render_sidebar()
-
-    # Create main tabs
-    tab1, tab2 = st.tabs(["✨ Single Analysis", "🔄 Compare Texts"])
-
-    with tab1:
-        # Input section
-        text = render_input_section()
-
-        # Analysis button
-        if text.strip() and len(text.split()) >= 5:
-            st.markdown('<div class="primary-btn">', unsafe_allow_html=True)
-            if st.button("🚀 Analyze Personality", use_container_width=True):
-                results = execute_analysis(text, model_option, show_wordcloud)
-                if results:
-                    display_analysis_results(results, text, model_option, show_wordcloud, show_details, show_trends, show_shifts, show_export)
-            st.markdown('</div>', unsafe_allow_html=True)
-
-    with tab2:
-        st.markdown("""
-        <div class="hero-card">
-            <h2 style="color: #f093fb; margin-bottom: 1rem; text-align: center;">⚖️ Text Comparison</h2>
-            <p style="color: #b8c5d6; text-align: center; margin-bottom: 0;">
-                Compare personality patterns between two different texts
-            </p>
-        </div>
-        """, unsafe_allow_html=True)
-
-        col1, col2 = st.columns(2)
-
-        with col1:
-            st.subheader("📝 Text 1")
-            text1 = st.text_area(
-                "First text:",
-                height=150,
-                placeholder="Enter the first text to compare...",
-                key="compare_text1"
+    for index, item in enumerate(QUESTIONNAIRE_ITEMS):
+        with columns[index % 2]:
+            selection = st.radio(
+                item["question"],
+                ["Left", "In Between", "Right"],
+                horizontal=True,
+                key=item["id"],
+                format_func=lambda key, left=item["left"], right=item["right"]: {
+                    "Left": left,
+                    "In Between": "In between",
+                    "Right": right,
+                }[key],
             )
+            dimension_scores.setdefault(item["dimension"], []).append(ANSWER_TO_SCORE[selection])
 
-        with col2:
-            st.subheader("📝 Text 2")
-            text2 = st.text_area(
-                "Second text:",
-                height=150,
-                placeholder="Enter the second text to compare...",
-                key="compare_text2"
-            )
-
-        if text1.strip() and text2.strip():
-            if st.button("⚖️ Compare Personalities", use_container_width=True, type="primary"):
-                with st.spinner("Comparing personality patterns..."):
-                    # Analyze both texts
-                    model_choice = get_model_choice(model_option)
-                    results1 = analyzer.analyze(text1, model=model_choice, include_wordcloud=False)
-                    results2 = analyzer.analyze(text2, model=model_choice, include_wordcloud=False)
-
-                    # Display comparison
-                    st.subheader("📊 Personality Comparison")
-
-                    if "personality" in results1 and "personality" in results2:
-                        # Create comparison visualization
-                        comparison_data = []
-                        for trait in results1["personality"].keys():
-                            if trait in results2["personality"]:
-                                score1 = results1["personality"][trait].get("score", 0) if isinstance(results1["personality"][trait], dict) else 0
-                                score2 = results2["personality"][trait].get("score", 0) if isinstance(results2["personality"][trait], dict) else 0
-                                comparison_data.append({
-                                    "Trait": trait,
-                                    "Text 1": score1,
-                                    "Text 2": score2
-                                })
-
-                        if comparison_data:
-                            df_comparison = pd.DataFrame(comparison_data)
-
-                            # Create comparison chart
-                            fig = go.Figure()
-
-                            fig.add_trace(go.Bar(
-                                name='Text 1',
-                                x=df_comparison['Trait'],
-                                y=df_comparison['Text 1'],
-                                marker_color='#667eea'
-                            ))
-
-                            fig.add_trace(go.Bar(
-                                name='Text 2',
-                                x=df_comparison['Trait'],
-                                y=df_comparison['Text 2'],
-                                marker_color='#f093fb'
-                            ))
-
-                            fig.update_layout(
-                                barmode='group',
-                                title="Personality Trait Comparison",
-                                paper_bgcolor='rgba(0,0,0,0)',
-                                plot_bgcolor='rgba(0,0,0,0)',
-                                font_color='white'
-                            )
-
-                            st.plotly_chart(fig, use_container_width=True)
-
-                            # Show differences
-                            st.subheader("🔍 Key Differences")
-                            for item in comparison_data:
-                                diff = abs(item["Text 1"] - item["Text 2"])
-                                if diff > 0.2:  # Significant difference
-                                    higher = "Text 1" if item["Text 1"] > item["Text 2"] else "Text 2"
-                                    st.markdown(f"**{item['Trait']}**: {higher} shows stronger tendency (+{diff:.2f})")
-        else:
-            st.info("💡 Enter text in both fields to enable comparison")
-
-# ===== UTILITY FUNCTIONS =====
-def get_model_choice(model_option):
-    """Convert UI model option to analyzer model parameter."""
     return {
-        "Basic (VADER)": "basic",
-        "Advanced (RoBERTa)": "advanced",
-        "Combined": "combined"
-    }[model_option]
+        dimension: sum(values) / len(values)
+        for dimension, values in dimension_scores.items()
+    }
 
-# ===== APPLICATION ENTRY POINT =====
+
+def state_color(label: str) -> str:
+    mapping = {
+        "Calm": "#8bb6ff",
+        "Reflective": "#c7a0ff",
+        "Analytical": "#94e6c1",
+        "Stressed": "#ffb177",
+        "Overthinking": "#ff9ed1",
+        "Mixed": "#a7b1d1",
+        "Unclear": "#a7b1d1",
+    }
+    return mapping.get(label, "#8bb6ff")
+
+
+def render_progress_metric(title: str, value: int, color: str, subtitle: str = "") -> None:
+    st.markdown(
+        f"""
+        <div class="card">
+            <div class="section-label">{title}</div>
+            <div class="stat-value">{value}/100</div>
+            <div class="progress-shell">
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width:{value}%; background:{color};"></div>
+                </div>
+            </div>
+            {f"<div class='stat-subtle' style='margin-top:0.55rem;'>{subtitle}</div>" if subtitle else ""}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_list_card(label: str, title: str, items) -> None:
+    st.markdown(
+        f"""
+        <div class="card">
+            <div class="section-label">{label}</div>
+            <div class="section-title">{title}</div>
+        """,
+        unsafe_allow_html=True,
+    )
+    for item in items:
+        st.markdown(f"- {item}")
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
+def render_safe_message(results) -> None:
+    st.markdown(
+        """
+        <div class="card">
+            <div class="section-label">Supportive Response</div>
+            <div class="section-title">Analysis paused</div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.markdown(results["support_message"])
+    st.markdown(
+        f"<div class='soft-note'><span class='muted'>{results['disclaimer']}</span></div>",
+        unsafe_allow_html=True,
+    )
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
+def render_low_signal(results) -> None:
+    st.markdown(
+        """
+        <div class="card">
+            <div class="section-label">Low-Signal Entry</div>
+            <div class="section-title">The sample needs more context</div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.markdown(results["reflection_summary"])
+    st.markdown("</div>", unsafe_allow_html=True)
+    render_list_card("Thought Patterns", "Why the result would be unreliable", results["thought_patterns"])
+    render_list_card("Suggestions", "How to make the next entry more useful", results["suggestions"])
+
+
+def render_memory_message(message: str) -> None:
+    if not message:
+        return
+    st.markdown(
+        f"""
+        <div class="soft-note">
+            <span class="muted">{message}</span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def build_memory_message(previous: Dict, current: Dict) -> str:
+    if not previous:
+        return ""
+
+    before_score = previous["self_awareness"]["score"]
+    after_score = current["self_awareness"]["score"]
+    before_state = previous["mental_state"]["label"]
+    after_state = current["mental_state"]["label"]
+
+    if after_score >= before_score + 8:
+        return f"Compared to your last entry, you seem more clear and self-aware. The score moved from {before_score} to {after_score}."
+    if after_score <= before_score - 8:
+        return f"Compared to your last entry, this one feels less settled. The self-awareness score moved from {before_score} to {after_score}."
+    if before_state != after_state:
+        return f"Compared to your last entry, your mental state shifted from {before_state.lower()} toward {after_state.lower()}."
+    return "Compared to your last entry, the overall pattern is fairly similar, even if the tone and details changed."
+
+
+def render_mbti_matches(results) -> None:
+    rows = []
+    for match in results["mbti_matches"]:
+        rows.append(
+            f"""
+            <div class="match-row">
+                <div class="match-name">{match['type']}</div>
+                <div class="match-bar"><div class="match-fill" style="width:{match['probability']:.0f}%"></div></div>
+                <div class="stat-subtle">{match['probability']:.0f}%</div>
+            </div>
+            """
+        )
+    st.markdown(
+        """
+        <div class="card">
+            <div class="section-label">Primary Type</div>
+            <div class="section-title">"""
+        + f"{results['mbti_primary']['type']} (Confidence: {results['mbti_primary']['probability']:.0f}%)"
+        + """</div>
+        """
+        + "".join(rows),
+        unsafe_allow_html=True,
+    )
+    for line in results["mbti_insights"]:
+        st.markdown(f"- {line}")
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
+def render_questionnaire_summary(results) -> None:
+    summary = results["fusion"]["questionnaire_dimensions"]
+    if not summary:
+        st.info("No questionnaire data was used in this analysis.")
+        return
+
+    st.markdown(
+        """
+        <div class="card">
+            <div class="section-label">Questionnaire Blend</div>
+            <div class="section-title">How the quick check-in influenced the type fit</div>
+        """,
+        unsafe_allow_html=True,
+    )
+    for row in summary:
+        st.markdown(
+            f"""
+            <div class="progress-shell">
+                <div class="progress-label">
+                    <span>{row['left']} ↔ {row['right']}</span>
+                    <span>{row['lean']}</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width:{row['score']*100:.0f}%; background: linear-gradient(90deg, #8bb6ff, #c7a0ff);"></div>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    st.markdown(
+        f"<div class='soft-note'><span class='muted'>Text weight: {results['fusion']['text_weight']:.0%} • Questionnaire weight: {results['fusion']['questionnaire_weight']:.0%}</span></div>",
+        unsafe_allow_html=True,
+    )
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
+def render_timeline(results) -> None:
+    timeline_df = pd.DataFrame(results["timeline"])
+    if timeline_df.empty:
+        st.info("No sentence-level timeline available.")
+        return
+
+    fig = go.Figure()
+    fig.add_trace(
+        go.Scatter(
+            x=timeline_df["step"],
+            y=timeline_df["sentiment"],
+            mode="lines+markers",
+            line=dict(color="#8bb6ff", width=3),
+            marker=dict(size=9, color="#c7a0ff"),
+            text=timeline_df["sentence"],
+            hovertemplate="Sentence %{x}<br>Sentiment %{y:.2f}<br>%{text}<extra></extra>",
+        )
+    )
+    fig.update_layout(
+        height=320,
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        margin=dict(l=10, r=10, t=10, b=10),
+        font=dict(color="#edf2ff"),
+        yaxis=dict(range=[-1, 1], gridcolor="rgba(255,255,255,0.08)"),
+        xaxis=dict(gridcolor="rgba(255,255,255,0.05)", title="Sentence"),
+    )
+    st.plotly_chart(fig, use_container_width=True)
+    st.caption("Higher values are more positive, lower values are heavier or more negative.")
+
+
+def render_highlighted_text(results) -> None:
+    st.markdown(
+        """
+        <div class="card">
+            <div class="section-label">Highlight Insights</div>
+            <div class="section-title">Words and phrases shaping the analysis</div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.markdown(f"<div class='highlight-box'>{results['highlighted_text_html']}</div>", unsafe_allow_html=True)
+    for line in results["highlight_legend"]:
+        st.markdown(f"- {line}")
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
+def render_key_signals(results) -> None:
+    st.markdown(
+        """
+        <div class="card">
+            <div class="section-label">Key Signals</div>
+            <div class="section-title">Language patterns influencing the output</div>
+        """,
+        unsafe_allow_html=True,
+    )
+    for feature_name, value, explanation in results["key_signals"]:
+        st.markdown(
+            f"""
+            <div class="signal-box">
+                <strong>{feature_name}</strong> • {value:.2f}<br>
+                <span class="muted">{explanation}</span>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
+def render_overview_tab(results) -> None:
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.markdown(
+            f"""
+            <div class="stat">
+                <div class="stat-label">Mental State</div>
+                <div class="stat-value" style="color:{state_color(results['mental_state']['label'])};">{results['mental_state']['label']}</div>
+                <div class="stat-subtle">{results['reflection_summary']}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    with col2:
+        primary = results["mbti_primary"]
+        st.markdown(
+            f"""
+            <div class="stat">
+                <div class="stat-label">Primary MBTI Fit</div>
+                <div class="stat-value">{primary['type']}</div>
+                <div class="stat-subtle">Confidence: {primary['probability']:.0f}%</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    with col3:
+        st.markdown(
+            f"""
+            <div class="stat">
+                <div class="stat-label">Self-Awareness Score</div>
+                <div class="stat-value">{results['self_awareness']['score']}/100</div>
+                <div class="stat-subtle">{results['self_awareness']['label']}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    render_memory_message(results.get("memory_message", ""))
+    render_list_card("Emotional Summary", "How the emotional signal looks", results["emotional_analysis"]["insights"])
+    render_progress_metric(
+        "Text Signal Strength",
+        int(round(results["fusion"]["text_strength"] * 100)),
+        "#8bb6ff",
+        "Higher signal means the text carried stronger evidence on its own.",
+    )
+
+
+def render_insights_tab(results) -> None:
+    col1, col2 = st.columns(2)
+    with col1:
+        render_list_card("Thought Patterns", "How the thinking flow reads", results["thought_patterns"])
+        render_list_card("Mental Signals", "Non-clinical strain indicators", results["mental_signals"])
+    with col2:
+        render_list_card("Communication Style", "How the writing comes across", results["communication_style"])
+        render_timeline(results)
+
+
+def render_personality_tab(results) -> None:
+    left, right = st.columns([1.05, 0.95])
+    with left:
+        render_mbti_matches(results)
+        render_questionnaire_summary(results)
+    with right:
+        render_highlighted_text(results)
+        render_key_signals(results)
+
+
+def render_growth_tab(results) -> None:
+    col1, col2 = st.columns(2)
+    with col1:
+        render_list_card("Strengths", "What already looks strong", results["strengths"])
+        render_list_card("Growth Mode", "How you can improve", results["growth_mode"])
+    with col2:
+        breakdown = results["self_awareness"]["breakdown"]
+        render_progress_metric("Clarity", breakdown["clarity"], "#8bb6ff")
+        render_progress_metric("Emotional Stability", breakdown["emotional_stability"], "#ffb177")
+        render_progress_metric("Reflection Depth", breakdown["reflection_depth"], "#c7a0ff")
+
+
+def render_results(results) -> None:
+    overview_tab, insights_tab, personality_tab, growth_tab = st.tabs(
+        ["Overview", "Insights", "Personality", "Growth"]
+    )
+    with overview_tab:
+        render_overview_tab(results)
+    with insights_tab:
+        render_insights_tab(results)
+    with personality_tab:
+        render_personality_tab(results)
+    with growth_tab:
+        render_growth_tab(results)
+
+    st.markdown(
+        f"<div class='soft-note'><span class='muted'>{results['confidence_note']} {results['disclaimer']}</span></div>",
+        unsafe_allow_html=True,
+    )
+
+
+def render_compare_section(analyzer: PersonalityAnalyzer) -> None:
+    st.markdown(
+        """
+        <div class="card">
+            <div class="section-label">Compare Entries</div>
+            <div class="section-title">Before vs after</div>
+            <div class="muted">Compare two journal entries to see how your tone, structure, and overall reading changed.</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    col1, col2 = st.columns(2)
+    with col1:
+        text1 = st.text_area(
+            "Entry A",
+            key="compare_a",
+            label_visibility="collapsed",
+            placeholder="Earlier entry...",
+        )
+    with col2:
+        text2 = st.text_area(
+            "Entry B",
+            key="compare_b",
+            label_visibility="collapsed",
+            placeholder="Later entry...",
+        )
+
+    if st.button("Compare Entries", use_container_width=True):
+        if not text1.strip() or not text2.strip():
+            st.error("Enter both texts before comparing them.")
+            return
+
+        comparison = analyzer.compare_texts(text1, text2)
+        st.session_state.compare_result = comparison
+
+    comparison = st.session_state.get("compare_result")
+    if not comparison:
+        return
+    if not comparison.get("success"):
+        st.error(comparison.get("error", "Comparison failed."))
+        return
+    if comparison.get("safe_mode") or comparison.get("low_signal"):
+        st.info(comparison["comparison_summary"])
+        return
+
+    st.markdown(
+        f"""
+        <div class="card">
+            <div class="section-label">Comparison Summary</div>
+            <div class="section-title">{comparison['comparison_summary']}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    cols = st.columns(len(comparison["shift_cards"]))
+    for col, card in zip(cols, comparison["shift_cards"]):
+        with col:
+            st.markdown(
+                f"""
+                <div class="stat">
+                    <div class="stat-label">{card['label']}</div>
+                    <div class="stat-value" style="font-size:1.25rem;">{card['after']}</div>
+                    <div class="stat-subtle">Before: {card['before']}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+    st.dataframe(pd.DataFrame(comparison["differences"]), use_container_width=True, hide_index=True)
+
+
+def main() -> None:
+    analyzer = load_analyzer()
+    render_hero()
+
+    input_col, questionnaire_col = st.columns([1.35, 1.0])
+    with input_col:
+        text = render_input_area()
+    with questionnaire_col:
+        questionnaire = render_questionnaire()
+
+    action_col, re_col = st.columns([0.3, 0.7])
+    with action_col:
+        analyze_clicked = st.button("Analyze My Thoughts", use_container_width=True)
+    with re_col:
+        st.caption("Text usually carries most of the weight. The questionnaire helps when the entry is shorter or more ambiguous.")
+
+    if analyze_clicked:
+        if not text.strip():
+            st.error("Write your thoughts before running the analysis.")
+            return
+
+        previous = st.session_state.get("last_successful_result")
+        with st.spinner("Blending text signals with your quick check-in..."):
+            result = analyzer.analyze(text, questionnaire=questionnaire)
+
+        if (
+            result.get("success")
+            and not result.get("safe_mode")
+            and not result.get("low_signal")
+        ):
+            result["memory_message"] = build_memory_message(previous, result) if previous else ""
+            st.session_state.last_successful_result = result
+            history = st.session_state.get("analysis_history", [])
+            history.append(
+                {
+                    "mental_state": result["mental_state"],
+                    "self_awareness": result["self_awareness"],
+                    "mbti_primary": result["mbti_primary"],
+                    "emotional_analysis": result["emotional_analysis"],
+                }
+            )
+            st.session_state.analysis_history = history[-5:]
+
+        st.session_state.analysis_result = result
+
+    result = st.session_state.get("analysis_result")
+    if result:
+        if not result.get("success"):
+            st.error(result.get("error", "Analysis failed."))
+        elif result.get("safe_mode"):
+            render_safe_message(result)
+        elif result.get("low_signal"):
+            render_low_signal(result)
+        else:
+            render_results(result)
+
+    render_compare_section(analyzer)
+
+
 if __name__ == "__main__":
     main()
