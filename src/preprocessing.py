@@ -19,12 +19,11 @@ except LookupError:
 
 
 def clean_text(text: str) -> str:
-    """Clean raw text."""
-    # Remove URLs
+    if not text:
+        return ""
+    text = text.strip()
     text = re.sub(r'http\S+|www\S+', '', text)
-    # Remove emails
     text = re.sub(r'\S+@\S+', '', text)
-    # Normalize whitespace
     text = ' '.join(text.split())
     return text
 
@@ -34,7 +33,7 @@ def tokenize_sentences(text: str) -> List[str]:
     try:
         return nltk.sent_tokenize(text)
     except:
-        return text.split('. ')
+        return [s.strip() for s in re.split(r'[.!?]+', text) if s.strip()]
 
 
 def tokenize_words(text: str) -> List[str]:
@@ -42,7 +41,7 @@ def tokenize_words(text: str) -> List[str]:
     try:
         return nltk.word_tokenize(text.lower())
     except:
-        return text.lower().split()
+        return re.findall(r'\b\w+\b', text.lower())
 
 
 def get_pos_tags(text: str) -> List[tuple]:
@@ -50,5 +49,6 @@ def get_pos_tags(text: str) -> List[tuple]:
     try:
         words = tokenize_words(text)
         return nltk.pos_tag(words)
-    except:
+    except Exception as e:
+        print(f"POS tagging failed: {e}")
         return []

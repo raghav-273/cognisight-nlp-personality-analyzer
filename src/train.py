@@ -84,7 +84,7 @@ def prepare_data(df: pd.DataFrame) -> Tuple[np.ndarray, pd.DataFrame, Personalit
     feature_extractor.fit_tfidf(texts)
     
     # Extract linguistic and TF-IDF features
-    print("  📊 Extracting features...")
+    print("Extracting features...")
     ling_df, tfidf_array = feature_extractor.extract_batch_features(texts)
     
     # Combine features
@@ -328,22 +328,22 @@ With better features and tuning, we achieved:
     for model_name, result in results.items():
         model = result['model']
         path = ModelManager.save_model(model, model_name)
-        print(f"  ✅ {model_name:20} → {path}")
+        print(f"{model_name:20} → {path}")
     
     # Save best model
     best_path = ModelManager.save_model(best_model_obj, 'best_model')
-    print(f"  ✅ {'best_model':20} → {best_path}")
+    print(f"{'best_model':20} → {best_path}")
     
     # Save feature extractor
     import pickle
     fe_path = os.path.join(get_config('model_dir'), 'feature_extractor.pkl')
     with open(fe_path, 'wb') as f:
         pickle.dump(feature_extractor, f)
-    print(f"  ✅ {'feature_extractor':20} → {fe_path}")
+    print(f"{'feature_extractor':20} → {fe_path}")
     
     # Final summary
     print("\n" + "="*78)
-    print("✅ Training complete!")
+    print("Training complete!")
     print("="*78)
     
     return {

@@ -14,7 +14,7 @@ import warnings
 warnings.filterwarnings('ignore')
 
 from src.preprocessing import tokenize_sentences, tokenize_words, get_pos_tags
-
+from src.emotion_extractor import EmotionExtractor
 
 class PersonalityFeatureExtractor:
     """Extract comprehensive personality features from text."""
@@ -35,7 +35,9 @@ class PersonalityFeatureExtractor:
         )
         self.sia = SentimentIntensityAnalyzer()
         self.is_fitted = False
-    
+
+        self.emotion_extractor = EmotionExtractor()
+
     def fit_tfidf(self, texts: List[str]) -> None:
         """
         Fit TF-IDF vectorizer on texts.
@@ -89,7 +91,7 @@ class PersonalityFeatureExtractor:
         sentences = tokenize_sentences(text)
         
         if not words:
-            return {f'ling_feat_{i}': 0.0 for i in range(20)}
+            return {f'ling_feat_{i}': 0.0 for i in range(30)}
         
         # Basic metrics
         avg_word_length = np.mean([len(w) for w in words]) if words else 0
@@ -212,7 +214,6 @@ class PersonalityFeatureExtractor:
         contraction_ratio = contraction_count / len(words) if words else 0
         
         # Tense diversity (very rough: past tense -ed, present -ing, etc.)
-        tense_markers = {'ed': 0, 'ing': 0, 'ing': 0}
         past_count = sum(1 for w in words_lower if w.endswith('ed'))
         present_count = sum(1 for w in words_lower if w.endswith('ing'))
         
@@ -273,27 +274,35 @@ class PersonalityFeatureExtractor:
     
     def extract_features(self, text: str) -> np.ndarray:
         """
-        Extract all features from text (120+ dimensions).
-        
-        Args:
-            text: Input text
-            
+        Extract features for model inference — matches the 130-dim training shape.
+
         Returns:
-            Feature vector (120+ dimensions)
+            Feature vector: 30 linguistic + 100 TF-IDF = 130 dims (matches saved model).
+
+        Emotion features are computed and cached on self._last_emotion_features
+        so the interpreter can use them without a second transformer call.
+        They are NOT included in the returned vector — the saved model was trained
+        on 130 features only (via extract_batch_features which never included emotion).
+        Adding 6 extra dims causes a hard shape-mismatch error at predict() time.
         """
-        # Linguistic features
+        # Linguistic features — fast, rule-based
         ling_features = self.extract_linguistic_features(text)
-        ling_vector = np.array(list(ling_features.values()))
-        
+        ling_vector = np.array([ling_features[f'ling_feat_{i}'] for i in range(30)])
+
         # TF-IDF features
         tfidf_vector = self.extract_tfidf_features(text)
         if tfidf_vector is None:
             tfidf_vector = np.zeros(self.max_tfidf_features)
-        
-        # Combine
-        combined = np.concatenate([ling_vector, tfidf_vector])
-        
-        return combined
+
+        # Emotion — run transformer ONCE, cache result for interpreter reuse
+        emotion_features = self.emotion_extractor.extract(text)
+
+        # Store both sub-components for analyzer.py to read without re-running
+        self._last_ling_features = ling_features
+        self._last_emotion_features = emotion_features
+
+        # Return ONLY ling + tfidf → 130 dims, matching training shape exactly
+        return np.concatenate([ling_vector, tfidf_vector])
     
     def extract_batch_features(self, texts: List[str]) -> Tuple[pd.DataFrame, np.ndarray]:
         """
@@ -325,7 +334,20 @@ class PersonalityFeatureExtractor:
         return ling_df, tfidf_array
     
     def get_feature_names(self) -> List[str]:
-        """Get all feature names."""
-        ling_names = [f'ling_feat_{i}' for i in range(20)]
+        # Linguistic features (30)
+        ling_names = [f'ling_feat_{i}' for i in range(30)]
+
+        # TF-IDF features (100)
         tfidf_names = [f'tfidf_{i}' for i in range(self.max_tfidf_features)]
-        return ling_names + tfidf_names
+
+        # Emotion features (6)
+        emotion_names = [
+            "emotion_sentiment",
+            "emotion_intensity",
+            "emotion_diversity",
+            "emotion_polarity",
+            "emotion_stability",
+            "emotion_dominant"
+        ]
+
+        return ling_names + tfidf_names + emotion_names

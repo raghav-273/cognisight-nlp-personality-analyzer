@@ -110,16 +110,16 @@ class PersonalityAnalyzer:
         return model
 
     def _load_feature_extractor(self) -> PersonalityFeatureExtractor:
-        extractor_path = os.path.join(get_config("model_dir"), "feature_extractor.pkl")
-        fallback_path = os.path.join("models", "feature_extractor.pkl")
-
-        for path in (extractor_path, fallback_path):
-            if os.path.exists(path):
-                with open(path, "rb") as file:
-                    return pickle.load(file)
-
+        fe_path = os.path.join(get_config("model_dir"), "feature_extractor.pkl")
+        if os.path.exists(fe_path):
+            try:
+                with open(fe_path, "rb") as f:
+                    return pickle.load(f)
+            except Exception as exc:
+                import warnings
+                warnings.warn(f"Could not load feature extractor: {exc}. Falling back to unfitted extractor.")
         return PersonalityFeatureExtractor()
-
+    
     def analyze(
         self,
         text: str,
@@ -176,14 +176,28 @@ class PersonalityAnalyzer:
             }
 
         try:
+            # extract_features() caches sub-components as _last_ling_features
+            # and _last_emotion_features — read those instead of re-running
+            # the expensive transformer models a second and third time.
             features = self.feature_extractor.extract_features(cleaned_text)
             model_input = features.reshape(1, -1)
             if self.scaler is not None:
                 model_input = self.scaler.transform(model_input)
 
-            raw_predictions = np.asarray(self.model.predict(model_input)[0], dtype=float)
+            raw_output = self.model.predict(model_input)
+            raw_predictions = np.asarray(
+                raw_output[0] if raw_output.ndim == 2 else raw_output,
+                dtype=float
+            )
             latent_profile = self._process_predictions(raw_predictions)
-            feature_values = self.feature_extractor.extract_linguistic_features(cleaned_text)
+
+            # Reuse what extract_features() already computed — zero extra cost
+            ling = getattr(self.feature_extractor, "_last_ling_features", None) \
+                   or self.feature_extractor.extract_linguistic_features(cleaned_text)
+            emo  = getattr(self.feature_extractor, "_last_emotion_features", None) \
+                   or self.feature_extractor.emotion_extractor.extract(cleaned_text)
+
+            feature_values = {**ling, **emo}
             text_distribution = self._mbti_distribution_from_profile(latent_profile)
             text_strength = self._text_strength(text_analysis, feature_values)
 
@@ -351,7 +365,7 @@ class PersonalityAnalyzer:
             for dimension_key, (left_letter, right_letter) in QUESTION_DIMENSIONS.items():
                 right_probability = float(questionnaire.get(dimension_key, 0.5))
                 left_probability = 1.0 - right_probability
-                letter = mbti_type["IENSPFTJ".find(left_letter)//2] if False else None
+                
                 letter = {
                     "IE": mbti_type[0],
                     "NS": mbti_type[1],

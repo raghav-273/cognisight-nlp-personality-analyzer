@@ -1,16 +1,14 @@
 """
 Model utilities for Cognisight
+Handles persistence of trained ML models (save/load/list).
 """
 
 import pickle
 import os
 from pathlib import Path
 from typing import Optional, Dict, Any
-import numpy as np
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.neural_network import MLPRegressor
 import xgboost as xgb
-
 from utils import get_config, ensure_models_dir
 
 
@@ -32,12 +30,15 @@ class ModelManager:
         """
         model_dir = ensure_models_dir()
         filename = f'{trait}_{name}.pkl' if trait != 'general' else f'{name}.pkl'
-        filepath = os.path.join(model_dir, filename)
+        filepath = Path(model_dir) / filename
+        try:
+            with open(filepath, 'wb') as f:
+                pickle.dump(model, f)
+        except Exception as e:
+            print(f"Error saving model to {filepath}: {e}")
+            raise e
         
-        with open(filepath, 'wb') as f:
-            pickle.dump(model, f)
-        
-        return filepath
+        return str(filepath)
     
     @staticmethod
     def load_model(name: str, trait: str = 'general') -> Optional[Any]:
@@ -53,80 +54,61 @@ class ModelManager:
         """
         model_dir = get_config('model_dir')
         filename = f'{trait}_{name}.pkl' if trait != 'general' else f'{name}.pkl'
-        filepath = os.path.join(model_dir, filename)
+        filepath = Path(model_dir) / filename
         
-        if not os.path.exists(filepath):
+        if not filepath.exists():
             return None
-        
-        with open(filepath, 'rb') as f:
-            model = pickle.load(f)
-        
+        try:
+            with open(filepath, 'rb') as f:
+                model = pickle.load(f)
+        except Exception as e:
+            print(f"Error loading model from {filepath}: {e}")
+            return None
+
         return model
     
     @staticmethod
-    def list_models() -> Dict[str, list]:
-        """
-        List all available models.
-        
-        Returns:
-            Dictionary of model types and available models
-        """
-        model_dir = get_config('model_dir')
-        if not os.path.exists(model_dir):
-            return {}
-        
-        models = {}
-        for filename in os.listdir(model_dir):
-            if filename.endswith('.pkl'):
-                key = filename.replace('.pkl', '')
-                models[key] = True
-        
-        return models
+    def list_models() -> list:
+        model_dir = Path(get_config('model_dir'))
+        if not model_dir.exists():
+            return []
+
+        return [
+            f.stem
+            for f in model_dir.iterdir()
+            if f.is_file() and f.suffix == '.pkl'
+        ]
 
 
 class ModelFactory:
-    """Create model instances with configured parameters."""
-    
+    """Factory for creating configured ML models."""
+
     @staticmethod
     def create_random_forest() -> RandomForestRegressor:
-        """Create Random Forest model with configured parameters."""
         from utils import MODEL_CONFIG
-        config = MODEL_CONFIG['random_forest']
-        
+        config = MODEL_CONFIG["random_forest"]
+
         return RandomForestRegressor(
-            n_estimators=config['n_estimators'],
-            max_depth=config['max_depth'],
-            min_samples_split=config['min_samples_split'],
+            n_estimators=config["n_estimators"],
+            max_depth=config["max_depth"],
+            min_samples_split=config["min_samples_split"],
             random_state=42,
-            n_jobs=-1
+            n_jobs=-1,
+            oob_score=True  # added for better evaluation insight
         )
-    
+
     @staticmethod
     def create_xgboost() -> xgb.XGBRegressor:
-        """Create XGBoost model with configured parameters."""
         from utils import MODEL_CONFIG
-        config = MODEL_CONFIG['xgboost']
-        
+        config = MODEL_CONFIG["xgboost"]
+
         return xgb.XGBRegressor(
-            n_estimators=config['n_estimators'],
-            max_depth=config['max_depth'],
-            learning_rate=config['learning_rate'],
+            n_estimators=config["n_estimators"],
+            max_depth=config["max_depth"],
+            learning_rate=config["learning_rate"],
+            subsample=config.get("subsample", 0.8),
+            colsample_bytree=config.get("colsample_bytree", 0.8),
             random_state=42,
-            verbosity=0
-        )
-    
-    @staticmethod
-    def create_mlp() -> MLPRegressor:
-        """Create MLP neural network with configured parameters."""
-        from utils import MODEL_CONFIG
-        config = MODEL_CONFIG['mlp']
-        
-        return MLPRegressor(
-            hidden_layer_sizes=config['hidden_layer_sizes'],
-            learning_rate_init=config['learning_rate_init'],
-            max_iter=config['max_iter'],
-            random_state=42,
-            early_stopping=True,
-            validation_fraction=0.1,
-            n_iter_no_change=20
+            verbosity=0,
+            n_jobs=-1
         )

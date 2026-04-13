@@ -16,7 +16,7 @@ from src.train import train_model_pipeline
 
 if __name__ == '__main__':
     print("\n" + "="*70)
-    print("🚀 COGNISIGHT MODEL TRAINING")
+    print("COGNISIGHT MODEL TRAINING")
     print("="*70 + "\n")
     
     # Ask user which models to train
@@ -25,14 +25,22 @@ if __name__ == '__main__':
     print("2. Full (all models) - ~5 minutes")
     
     choice = input("\nEnter choice (1 or 2): ").strip()
+    if choice not in ['1', '2']:
+        print("Invalid choice. Defaulting to Fast mode (XGBoost only).")
+        choice = '1'
+
     train_all = choice == '2'
     
     # Train
-    results = train_model_pipeline(train_all_models=train_all)
-    
+    try:
+        results = train_model_pipeline(train_all_models=train_all)
+    except Exception as e:
+        print(f"Error occurred during training: {e}")
+        sys.exit(1)
+
     # Success message
     print("\n" + "="*70)
-    print("✅ Training complete!")
+    print("Training complete!")
     print("="*70)
     print("\nModels saved to: ./models/")
     print("\nNext, run:")
