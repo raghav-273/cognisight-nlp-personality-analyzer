@@ -1,280 +1,218 @@
-# Cognisight
+<div align="center">
 
-Cognisight is a journaling and self-awareness tool that reads a written reflection and turns it into something more useful than a generic personality score.
+<br/>
 
-I built it around a simple idea: when people journal, they usually want help understanding what is going on beneath the surface. Are they calm or overloaded? Are they thinking clearly or looping? Are they being reflective, avoidant, structured, or emotionally scattered? Cognisight tries to answer those questions in a way that feels practical and grounded.
+```
+   ██████╗ ██████╗  ██████╗ ███╗   ██╗██╗███████╗██╗ ██████╗ ██╗  ██╗████████╗
+  ██╔════╝██╔═══██╗██╔════╝ ████╗  ██║██║██╔════╝██║██╔════╝ ██║  ██║╚══██╔══╝
+  ██║     ██║   ██║██║  ███╗██╔██╗ ██║██║███████╗██║██║  ███╗███████║   ██║   
+  ██║     ██║   ██║██║   ██║██║╚██╗██║██║╚════██║██║██║   ██║██╔══██║   ██║   
+  ╚██████╗╚██████╔╝╚██████╔╝██║ ╚████║██║███████║██║╚██████╔╝██║  ██║   ██║   
+   ╚═════╝ ╚═════╝  ╚═════╝ ╚═╝  ╚═══╝╚═╝╚══════╝╚═╝ ╚═════╝ ╚═╝  ╚═╝   ╚═╝  
+```
 
-The project combines:
-- text-based language analysis
-- inferred MBTI-style matches
-- a short personality micro-questionnaire
-- reflection-focused feedback instead of clinical labeling
+**A journaling intelligence tool that turns your writing into self-understanding.**
 
-It is not a diagnostic tool, and it is not meant to replace therapy or mental health support. It is a structured reflection assistant.
+<br/>
 
-## What It Does
+[![Python](https://img.shields.io/badge/Python-3.9%2B-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
+[![Streamlit](https://img.shields.io/badge/Streamlit-1.x-FF4B4B?style=flat-square&logo=streamlit&logoColor=white)](https://streamlit.io)
+[![scikit-learn](https://img.shields.io/badge/scikit--learn-1.x-F7931E?style=flat-square&logo=scikit-learn&logoColor=white)](https://scikit-learn.org)
+[![XGBoost](https://img.shields.io/badge/XGBoost-Best%20Model-189AB4?style=flat-square)](https://xgboost.readthedocs.io)
+[![HuggingFace](https://img.shields.io/badge/🤗%20HuggingFace-Transformers-FFD21E?style=flat-square)](https://huggingface.co)
+[![License](https://img.shields.io/badge/License-MIT-22C55E?style=flat-square)](LICENSE)
+[![Status](https://img.shields.io/badge/Status-Active-22C55E?style=flat-square)]()
 
-Given a journal entry, Cognisight produces:
-- a mental state summary
-- MBTI-style top matches with clearer confidence contrast
-- emotional analysis
-- thought pattern detection
-- communication style feedback
-- non-clinical mental signals
-- strengths already visible in the writing
-- practical growth suggestions
+<br/>
 
-It also includes:
-- a 6-question micro-questionnaire that lightly personalizes the output
-- adaptive fusion between questionnaire signals and text signals
-- a sentence-by-sentence emotional timeline
-- highlighted words and phrases that influenced the reading
-- entry-to-entry comparison
-- lightweight session memory so the app can compare your current entry with the last one
-- a self-awareness score based on clarity, emotional stability, and reflection depth
+> *Most journaling apps give you a word cloud. Cognisight gives you a mirror.*
 
-## Why This Project Is Different
+<br/>
 
-A lot of student NLP projects stop at “here is a predicted label.” That usually looks technical, but it does not feel useful.
+</div>
 
-Cognisight is designed more like a product:
-- the model stays in the background
-- the interface is calm and readable
-- the output is framed around self-understanding
-- the feedback is actionable instead of decorative
+---
 
-The goal is not to impress with a raw metric alone. The goal is to show that machine learning can be packaged into something people would actually want to use.
+## What Is Cognisight?
 
-## Current Modeling Approach
+Cognisight reads a written journal entry and turns it into something more useful than a generic personality score.
 
-The current saved model is a regressor trained on MBTI-derived data and used to produce a latent personality profile. From that latent profile, the app infers MBTI-style matches rather than claiming to be a direct 16-class MBTI classifier.
+When people journal, they want help understanding what's going on beneath the surface — **Are they calm or overloaded? Thinking clearly or looping? Being reflective, avoidant, structured, or emotionally scattered?** Cognisight answers those questions in a way that feels practical and grounded, not clinical.
 
-That means the type output should be read as:
-- “best fit based on this entry”
-- not “ground-truth type”
+It is **not a diagnostic tool**. It is a structured reflection assistant — closer to a thoughtful reading of your writing than a psychological assessment.
 
-This is an intentional tradeoff for now because I wanted the product layer to be strong without rebuilding the training pipeline from scratch.
+<br/>
 
-## Hybrid Intelligence Design
+## Features at a Glance
 
-The app combines two sources of signal:
+<table>
+<tr>
+<td width="50%" valign="top">
 
-### 1. Text Analysis
-The written entry provides the main signal. The system extracts:
-- linguistic structure
-- repetition and looping
-- tone and sentiment fluctuation
-- emotional intensity
-- vocabulary diversity
-- informality and slang
+### Core Analysis
+- **Mental state classification** — Calm, Reflective, Analytical, Stressed, Overthinking, Mixed
+- **Big Five personality inference** — from latent writing signals
+- **MBTI-style fit** — top 2–3 types with confidence and plain-English explanation
+- **Self-awareness score** — clarity + emotional stability + reflection depth
 
-### 2. Micro-Questionnaire
-A short questionnaire adds lightweight self-reported preference data across:
-- Introversion vs Extraversion
-- Intuition vs Sensing
-- Thinking vs Feeling
-- Judging vs Perceiving
+</td>
+<td width="50%" valign="top">
 
-### Fusion Logic
-By default, the system gives more weight to the text than the questionnaire.
+### Language Insights
+- **Thought pattern detection** — rumination, looping, clarity vs chaos
+- **Emotional timeline** — sentence-by-sentence sentiment arc
+- **Highlighted text** — shows exactly what influenced the reading
+- **Communication style** — formal vs informal, expressive vs reserved
 
-Typical weighting:
-- strong text signal: 70% text / 30% questionnaire
-- weaker or noisier text: text weight drops and questionnaire weight increases
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
 
-This keeps the system personalized without turning the questionnaire into a full personality test.
+### Tracking & Memory
+- **User accounts** — private entries stored per user
+- **Daily check-ins** — mood, energy, stress sliders + reflection prompt
+- **Trend charts** — mood, mental state, self-awareness over time
+- **Entry comparison** — mental state shift, emotional shift, type change
 
-## Main Outputs
+</td>
+<td width="50%" valign="top">
 
-### Mental State Summary
-Examples:
-- Calm
-- Reflective
-- Analytical
-- Stressed
-- Overthinking
-- Mixed
+### Responsible Design
+- **Safety layer** — detects extreme distress language and pauses analysis
+- **Non-clinical framing** — mental signals, not diagnoses
+- **Adaptive fusion** — balances text signal vs questionnaire signal automatically
+- **Onboarding baseline** — personality context from first use
 
-### Personality Insight
-Shows:
-- primary MBTI-style fit
-- top 2-3 likely types
-- short plain-language explanations
+</td>
+</tr>
+</table>
 
-Example:
-- INTP (59%) — analytical, curious, and idea-driven
-- INFP (24%) — reflective, idealistic, and emotionally aware
-- INFJ (17%) — insightful, values-driven, and quietly organized
+<br/>
 
-### Emotional Analysis
-Breaks down:
-- emotional intensity
-- emotional stability vs fluctuation
-- overall tone
+## How It Works
 
-### Thought Patterns
-Looks for:
-- overthinking
-- repetition and rumination
-- confusion vs clarity
-- structured vs chaotic flow
+```
+               Your journal entry
+                       │
+                       ▼
+  ┌─────────────────────────────────────────────────┐
+  │              TEXT ANALYSIS                      │
+  │  • 30 linguistic features                       │
+  │    (tone, structure, repetition, variance...)   │
+  │  • 100 TF-IDF vocabulary patterns               │
+  │  • 7-class emotion model (HuggingFace)          │
+  │  • Sentence-level sentiment arc                 │
+  └────────────────────┬────────────────────────────┘
+                       │
+                       ▼
+  ┌─────────────────────────────────────────────────┐
+  │           PERSONALITY BASELINE                  │
+  │  • 20-question onboarding (Big Five + context)  │
+  │  • Adaptive fusion: strong text = 70% text      │
+  │                     weak text  = 50/50 split    │
+  └────────────────────┬────────────────────────────┘
+                       │
+                       ▼
+  ┌─────────────────────────────────────────────────┐
+  │                 ML MODEL                        │
+  │  XGBoost regressor → Big Five latent profile    │
+  │  → MBTI-style type inference (16 types)         │
+  │  → Mental state classification                  │
+  │  → Self-awareness score                         │
+  └─────────────────────────────────────────────────┘
+                       │
+                       ▼
+       Insights  ·  Strengths  ·  Suggestions
+       Emotional timeline  ·  Reflection prompts
+```
 
-### Communication Style
-Describes:
-- formal vs informal tone
-- expressive vs reserved style
+<br/>
 
-### Mental Signals
-Non-clinical observations such as:
-- stress indicators
-- emotional overload
-- cognitive fatigue
+## Performance
 
-### Strengths
-Highlights what is already working:
-- reflection
-- awareness
-- logical structure
+<table>
+<tr>
+<th align="left">Model</th>
+<th align="center">Test R²</th>
+<th align="center">CV R² (5-fold)</th>
+<th align="center">CV Std Dev</th>
+</tr>
+<tr>
+<td>Random Forest</td>
+<td align="center">0.2412</td>
+<td align="center">0.2156</td>
+<td align="center">±0.0784</td>
+</tr>
+<tr>
+<td><strong>XGBoost (Best)</strong></td>
+<td align="center"><strong>0.2814</strong></td>
+<td align="center"><strong>0.2501</strong></td>
+<td align="center">±0.0712</td>
+</tr>
+<tr>
+<td>Industry Baseline</td>
+<td align="center">0.18–0.25</td>
+<td align="center">—</td>
+<td align="center">—</td>
+</tr>
+</table>
 
-### Suggestions
-Practical next steps such as:
-- break thoughts into smaller steps
-- slow the pace of the entry
-- answer one question fully before moving to the next
-- turn looping thoughts into a clearer plan
+> **On R² for personality prediction:** R² ≈ 0.25–0.28 is realistic and at or above published benchmarks for this task. Personality labels derived from MBTI are inherently noisy self-reports. The model is accurate enough for *reflection and guidance* — which is exactly what it's built for.
 
-## Interactive Features
+### Inference Speed
 
-### Compare Entries
-You can compare two journal entries and see:
-- mental state shift
-- emotional shift
-- self-awareness score change
-- MBTI-style fit change
+| Operation | Time |
+|---|---|
+| Full analysis (300-word entry) | 150–250ms |
+| Model inference only | ~35ms |
+| Emotion model (transformer) | ~2–3s (CPU, cached after first run) |
+| Entry comparison | ~300ms |
+| App startup | ~2–3s (cached after first load) |
 
-### Timeline View
-The app plots sentence-level sentiment so you can see how the emotional tone changes across an entry.
-
-### Highlighted Insights
-The app highlights:
-- emotional words
-- repeated words
-- informal or slang-like language
-
-This makes the output easier to trust because you can see what the model is reacting to.
-
-### Session Memory
-Within the current Streamlit session, Cognisight remembers the last successful analysis and can say things like:
-
-> Compared to your last entry, you seem more clear and self-aware.
-
-## Safety Layer
-
-If the input contains clear self-harm or extreme distress language, the app does not continue with normal analysis.
-
-Instead, it shows a supportive pause message:
-
-> This text suggests you may be going through something intense. It might help to talk to someone you trust or seek support.
-
-This keeps the product responsible without pretending to be a clinical tool.
-
-## Example Use Cases
-
-- journaling after a stressful day
-- comparing “before” and “after” entries
-- noticing whether thoughts are becoming more structured over time
-- checking whether an entry reads as reflective, overwhelmed, or emotionally steady
-- using writing as a mirror for self-awareness
-
-## Tech Stack
-
-- Python
-- Streamlit
-- scikit-learn
-- XGBoost
-- pandas
-- numpy
-- NLTK
-
-## Performance Metrics
-
-### Model Performance
-| Model | Test R² | CV R² | CV Std Dev |
-|-------|---------|-------|-----------|
-| Random Forest | 0.2412 | 0.2156 | ±0.0784 |
-| XGBoost (Best) | 0.2814 | 0.2501 | ±0.0712 |
-| Industry Baseline | 0.18–0.25 | — | — |
-
-*Based on 5-fold cross-validation on MBTI-derived personality dataset*
-
-### Inference Performance
-- **Average analysis time:** 150–250ms for typical 300-word entry
-- **Text processing speed:** ~50,000 words/second
-- **Model inference:** ~35ms per prediction
-- **Bottleneck:** Feature extraction (linguistic analysis)
-
-### Feature Engineering
-- **Total linguistic features:** 30+
-- **TF-IDF vocabulary patterns:** 100 features
-- **Dimensional output:** Big Five (5 traits + confidence scores)
-- **Personality types inferred:** 16 MBTI types
-- **Text-level metrics:** 5 (word count, sentence count, lexical diversity, etc.)
-
-### Scalability
-- **Single-user session memory:** Real-time (<100ms response)
-- **Comparison operations:** 2 entries in ~300ms
-- **Model size in memory:** ~15MB (XGBoost)
-- **App startup time:** ~2-3 seconds (Streamlit cached load)
-
-### Data Quality
-- **Training dataset:** MBTI personality dataset (~8,623 entries)
-- **Minimum input length:** 80 characters (enforced)
-- **Optimal input length:** 300+ words
-- **Supported languages:** English (currently)
-- **Text preprocessing:** Tokenization, lowercasing, stopword handling
-
-### Accuracy Notes
-- R² of 0.25–0.28 reflects the inherent noise in personality prediction from text alone
-- Self-report personality tests (like MBTI) are noisy labels by nature
-- The model performs at or above established industry benchmarks for this task
-- **Key insight:** The accuracy is sufficient for *guidance and reflection*, not clinical diagnosis
-- Personality varies by context and mood—single-entry predictions capture one moment
+<br/>
 
 ## Project Structure
 
-```text
+```
 cognisight/
-├── app.py
-├── analyzer.py
-├── README.md
-├── requirements.txt
-├── data/
-│   └── mbti_dataset.csv
+├── app.py                    ← Streamlit UI, user auth, daily check-in flow
+├── analyzer.py               ← Main analysis orchestrator
+│
+├── src/
+│   ├── feature_extractor.py  ← 30 linguistic + 100 TF-IDF features
+│   ├── emotion_extractor.py  ← HuggingFace transformer (7-class emotion + sentiment)
+│   ├── interpretation.py     ← Mental state, MBTI inference, insights, strengths
+│   ├── inference.py          ← Model loading and prediction pipeline
+│   ├── feature_importance.py ← Feature contribution and explainability
+│   ├── preprocessing.py      ← Tokenisation, cleaning, POS tagging
+│   ├── model.py              ← Model factory and manager
+│   ├── train.py              ← Training pipeline with GridSearchCV + CV
+│   └── run_training.py       ← Training entry point
+│
+├── utils/
+│   ├── helpers.py            ← Config, MBTI→Big Five mapping, normalization
+│   └── __init__.py
+│
 ├── models/
-│   ├── best_model.pkl
+│   ├── best_model.pkl        ← XGBoost (loaded by default)
 │   ├── random_forest.pkl
 │   ├── xgboost.pkl
-│   └── feature_extractor.pkl
-├── src/
-│   ├── __init__.py
-│   ├── feature_extractor.py
-│   ├── feature_importance.py
-│   ├── inference.py
-│   ├── interpretation.py
-│   ├── model.py
-│   ├── preprocessing.py
-│   ├── run_training.py
-│   └── train.py
-└── utils/
-    ├── __init__.py
-    └── helpers.py
+│   └── feature_extractor.pkl ← Fitted TF-IDF vectorizer
+│
+└── data/
+    └── mbti_dataset.csv      ← 8,623 MBTI-labelled writing samples
 ```
+
+<br/>
 
 ## Getting Started
 
-### 1. Install dependencies
+### 1. Clone and install
 
 ```bash
+git clone https://github.com/yourusername/cognisight.git
+cd cognisight
 pip install -r requirements.txt
 ```
 
@@ -284,35 +222,120 @@ pip install -r requirements.txt
 streamlit run app.py
 ```
 
-### 3. Optional: retrain models
+On first run, the emotion analysis models (~500MB) download automatically from HuggingFace and are cached locally. This is a one-time cost — every subsequent run loads from cache in ~2 seconds.
+
+### 3. Retrain models (optional)
 
 ```bash
 python -m src.train
 ```
 
-## Notes on Model Files
+This runs full GridSearchCV hyperparameter tuning and 5-fold cross-validation on the MBTI dataset and saves new model artifacts to `models/`.
 
-The repository includes saved model artifacts in `models/`.
+<br/>
 
-If your environment is missing `xgboost`, the app falls back to the saved random forest model when possible. That keeps the app usable without changing the product logic.
+## Dependencies
 
-## Limitations
+```
+streamlit          # UI framework
+scikit-learn       # Random Forest, preprocessing
+xgboost            # Best-performing model
+transformers       # HuggingFace emotion + sentiment pipelines
+torch              # Transformer backend
+nltk               # Tokenisation, POS tagging, VADER sentiment
+pandas             # Data handling
+numpy              # Feature vectors
+plotly             # Charts and visualisations
+```
 
-- One journal entry is still only one snapshot in time.
-- MBTI output is inferred from latent signals, not directly classified by a native 16-type model.
-- Writing quality affects output quality a lot.
-- Highly repetitive or extremely short text is intentionally treated as low-signal.
-- The app is reflection-oriented, not clinical.
+Install everything at once:
 
-## Why I Kept It This Way
+```bash
+pip install -r requirements.txt
+```
 
-I wanted the system to stay readable and modular instead of turning into an overbuilt research prototype.
+> **Note on XGBoost:** If `xgboost` is unavailable, the app automatically falls back to the saved Random Forest model. No code changes needed.
 
-The current version is simple enough to explain in an interview, but strong enough to show:
-- applied NLP
-- feature engineering
-- product thinking
-- safety-aware UX
-- practical interface design
+<br/>
 
-That combination is really the point of the project.
+## Design Philosophy
+
+Most student NLP projects stop at "here is a predicted label." That looks technical, but it doesn't feel useful.
+
+Cognisight is designed more like a product:
+
+- **The model stays in the background.** Users see insights, not feature vectors.
+- **The output is framed around self-understanding**, not scoring or ranking.
+- **Feedback is actionable** — concrete next steps, not decorative labels.
+- **Safety is built in** — distress detection pauses analysis and shows support resources.
+- **The interface is calm.** Dark, readable, and free of noise.
+
+The goal isn't to impress with a raw metric. It's to show that machine learning can be packaged into something people would actually want to use.
+
+<br/>
+
+## Honest Limitations
+
+- One journal entry is a snapshot in time. Personality varies by context and mood.
+- MBTI output is inferred from latent signals — read it as "best fit for this entry," not ground truth.
+- Writing quality matters. Short, repetitive, or extremely vague entries produce lower-signal output.
+- English only (currently).
+- Not a clinical tool. Not a replacement for therapy or professional mental health support.
+
+<br/>
+
+## Example Output
+
+Given a journal entry like:
+
+> *"I've been going over the same problem for hours and I can't seem to get out of my own head. I know what I should do, but every time I start, something pulls me back. I'm worried I'm running out of time and I don't know how to slow down..."*
+
+Cognisight might return:
+
+```
+Mental state     →  Overthinking
+Self-awareness   →  72 / 100
+Emotional tone   →  Anxious-reflective
+MBTI fit         →  INFP (61%)  ·  INFJ (22%)  ·  INTP (17%)
+
+Thought patterns →  Rumination loop detected
+                    Clarity visible in final sentence
+                    High self-awareness despite overload
+
+Strengths        →  Genuine reflection present
+                    Clear awareness of the pattern
+
+Suggestions      →  Write the one thing you'd do if you had to pick just one
+                    Separate what you can control from what you can't
+```
+
+<br/>
+
+## Safety Layer
+
+If an entry contains clear self-harm or extreme distress language, the app does not continue with normal analysis. It shows a calm supportive message and crisis resources:
+
+```
+This text suggests you may be going through something intense.
+It might help to talk to someone you trust or seek support.
+
+iCall India:              9152987821
+Vandrevala Foundation:    1860-2662-345  (24/7)
+```
+
+<br/>
+
+---
+
+<div align="center">
+
+Built by Raghav Mishra with intention and care — a reminder that machine learning can be both intelligent and human-centered.
+
+<br/>
+
+[![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
+[![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)](https://streamlit.io)
+[![HuggingFace](https://img.shields.io/badge/🤗_HuggingFace-FFD21E?style=for-the-badge)](https://huggingface.co)
+[![scikit-learn](https://img.shields.io/badge/scikit--learn-F7931E?style=for-the-badge&logo=scikit-learn&logoColor=white)](https://scikit-learn.org)
+
+</div>
